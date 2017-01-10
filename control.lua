@@ -161,10 +161,10 @@ function warning(player, byPlayer)
             jailControler(player, byPlayer)
         else
             local warningsLeft = warningAllowed-warnings[player.index]
-            if game.players[byPlayer] ~= nil then
-                player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
+            if type(byPlayer) == 'string' then
+				player.print('You have been given a warning by ' .. byPlayer .. ', you have ' .. warningsLeft .. ' left.')
             else
-                player.print('You have been given a warning by ' .. byPlayer .. ', you have ' .. warningsLeft .. ' left.')
+                player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
 			end
         end
     else
