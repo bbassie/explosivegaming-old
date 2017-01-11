@@ -2,7 +2,7 @@
 -----------------------------Varabliles------------------testing cool 123----------
 -----------------------------------------------------------------------------------
 itemRotated = {}
-warningAllowed = 1
+warningAllowed = 9999
 warnings = {}
 entityCache = {}
 spectating = {}
@@ -147,29 +147,34 @@ function setUpRanks()
 end
 -----------------------------------------------------------------------------------
 function warning(player, byPlayer)
-    if testRank(player, 'guest', 'reg') then
-        if warnings[player.index] == nil then
-                warnings[player.index] = 1
-            else
-                warnings[player.index] = warnings[player.index] +1
-            end
-        if warnings[player.index] > warningAllowed then
-            warnings[player.index]=0
-            playerRanks[player.index] = 'jail'
-            drawPlayerList()
-            drawToolbar(player)
-            jailControler(player, byPlayer)
-        else
-            local warningsLeft = warningAllowed-warnings[player.index]
-            if type(byPlayer) == 'string' then
-				player.print('You have been given a warning by ' .. byPlayer .. ', you have ' .. warningsLeft .. ' left.')
-            else
-                player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
-			end
-        end
-    else
-        byPlayer.print('Their rank is too high to give warnings to.')
+  local byPlayer = byPlayer
+  if byPlayer ~= "system" then
+    if type(byPlayer) == "string" then
+      byPlayer = game.players[byPlayer]
     end
+  else
+    byPlayer = game.players[1]
+  end
+  
+  if testRank(player, 'guest', 'reg') then
+    if warnings[player.index] == nil then
+      warnings[player.index] = 1
+    else
+      warnings[player.index] = warnings[player.index] +1
+    end
+    if warnings[player.index] > warningAllowed then
+      warnings[player.index]=0
+      playerRanks[player.index] = 'jail'
+      drawPlayerList()
+      drawToolbar(player)
+      jailControler(player, byPlayer)
+    else
+      local warningsLeft = warningAllowed-warnings[player.index]
+      player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
+    end
+  else
+    byPlayer.print('Their rank is too high to give warnings to.')
+  end
 end
 -----------------------------------------------------------------------------------
 -----------------------------Button Functions--------------------------------------
@@ -305,8 +310,13 @@ end
 -----------------------------------------------------------------------------------
 function jailControler(player, byPlayer)
 	if testRank(player, 'jail', 'jail') then
-		player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
-		callRank(player.name .. " has been Jailed by " .. byPlayer.name, 'mod')
+    if type(byPlayer) == 'string' then
+      player.print('You have been Jailed by ' .. byPlayer .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
+		  callRank(player.name .. " has been Jailed by " .. byPlayer, 'mod')
+    else
+      player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
+		  callRank(player.name .. " has been Jailed by " .. byPlayer.name, 'mod')
+    end
 		player.character.active = false
 	else
 		player.character.active = true
@@ -319,13 +329,17 @@ function RankGui(player, event)
 	local function drawFrame()
 		if testRank(player, 'admin') then
 			frame = player.gui.left.add{name='RankGUI', type = 'frame', caption='Rank Editer', direction = "vertical"}
-			Table = frame.add{name='Table', type='table', colspan=2}
-			Table.add{name='player', type='label', caption='Player'}
-			Table.add{name='playerT', type='textfield', caption='Player text field', text='Enter Player Name'}
-			Table.add{name='rank', type='label', caption='Rank'}
-			Table.add{name='rankT', type='textfield', caption='Rank text field', text='Enter Rank'}
-			Table.add{name='rankApply', type='button', caption='Apply'}
-			Table.add{name='rankClose', type='button', caption='Close'}
+      frame.add{name='flowPlayerName', type='flow', direction = "horizontal"}
+      frame.add{name='rank', type='label', caption='Rank to select from'}
+      frame.add{name='flowRanks', type='flow', direction = "horizontal"}
+      frame.add{name='flowActions', type='flow', direction = "horizontal"}
+			frame.flowPlayerName.add{name='player', type='label', caption='Player'}
+			frame.flowPlayerName.add{name='playerT', type='textfield', caption='Player text field', text='Enter Player Name'}
+			frame.flowActions.add{name='rankApply', type='button', caption='Apply'}
+			frame.flowActions.add{name='rankClose', type='button', caption='Close'}
+      for i, rank in pairs(ranks) do
+        frame.flowRanks.add{name=tostring(rank), type="radiobutton", state=false, caption=tostring(rank)}
+      end
 		end
 	end
 	local function isValdToMove(rank, player)
@@ -335,18 +349,37 @@ function RankGui(player, event)
 			return false
 		end
 	end
+  local function checkBox(element)
+    for i, checkElement in pairs(element.children_names) do
+      if element[checkElement].state == true then
+        if element[checkElement].name == "0" then
+          return "owner"
+        elseif element[checkElement].name == "1" then
+          return "admin"
+        elseif element[checkElement].name == "2" then
+          return "mod"
+        elseif element[checkElement].name == "3" then
+          return "reg"
+        elseif element[checkElement].name == "4" then
+          return "guest"
+        elseif element[checkElement].name == "5" then
+          return "jail"
+        end
+      end
+    end
+  end
 	local function apply()
-		local rank = string.lower(tostring(player.gui.left.RankGUI.Table.rankT.text))
-		local Rplayer = player.gui.left.RankGUI.Table.playerT.text
+		local rank = checkBox(player.gui.left.RankGUI.flowRanks)
+		local Rplayer = player.gui.left.RankGUI.flowPlayerName.playerT.text
 		if isValdToMove(rank, Rplayer) then
-			Rplayer = game.players[Rplayer]
-			editRank(player, Rplayer, rank)
+			local Rplayer = game.players[Rplayer]
+      editRank(player, Rplayer, rank)
 		else
 			player.print('Entry was invalid')
 		end
 	end	
 	if event == 1 then
-		newOwner = game.players[player.gui.left.RankGUI.Table.playerT.text]
+		newOwner = game.players[player.gui.left.RankGUI.flowPlayerName.playerT.text]
 		if newOwner ~= nil then
 			makeOwner(newOwner)
 		else
@@ -360,7 +393,7 @@ function RankGui(player, event)
 		elseif player.gui.left.RankGUI == nil then
 			drawFrame()
 		end
-    end
+  end
 end
 -----------------------------------------------------------------------------------
 function jailGui(player, event)
@@ -649,6 +682,32 @@ script.on_event(defines.events.on_gui_click, function(event)
 	  jailGui(player, 3)
   end
 end)
+script.on_event(defines.events.on_gui_checked_state_changed, function(event)
+  local player = game.players[event.player_index]
+  local Rplayer = player.gui.left.RankGUI.flowPlayerName.playerT.text
+  local check = event.element.name
+  if check == "0" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "0")
+  elseif check == "1" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "1")
+  elseif check == "2" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "2")
+  elseif check == "3" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "3")
+  elseif check == "4" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "4")
+  elseif check == "5" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "5")
+  end
+end)
+
+function clearCheck(element, notToClear)
+    for i, checkElement in pairs(element.children_names) do
+      if element[checkElement].name ~= notToClear then
+        element[checkElement].state = false
+      end
+    end
+  end
 -----------------------------------------------------------------------------------
 -----------------------------On Player Events--------------------------------------
 -----------------------------------------------------------------------------------
