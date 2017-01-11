@@ -7,14 +7,33 @@ timeForRegular = 120
 warnings = {}
 entityCache = {}
 spectating = {}
-playerRanks = {}
+playerRanks = nil
 ranks = {
-owner=0,
-admin=1,
-mod=2,
-reg=3,
-guest=4,
-jail=5}
+  {
+    id = 0,
+    name = "owner"
+  },
+  {
+    id = 1,
+    name = "admin"
+  },
+  {
+    id = 2,
+    name = "mod"
+  },
+  {
+    id = 3,
+    name = "reg"
+  },
+  {
+    id = 4,
+    name = "guest"
+  },
+  {
+    id = 5,
+    name = "jail"
+  }
+}
 currentOwner = 1
 defaultRank = 'guest'
 defaultMinRank = 'jail'
@@ -48,21 +67,70 @@ function clearElement(elementToClear)
   end
 end
 -----------------------------------------------------------------------------------
------------------------------Advanced Functions------------------------------------
+-------------------------------Rank functions--------------------------------------
 -----------------------------------------------------------------------------------
-function testRank(player, minRank, maxRank)
-	maxRank = maxRank or defaultMaxRank
-	minRank = minRank or defaultMinRank
-	local playerRank = playerRanks[player.index]
-	if playerRank ~= nil then
-		if ranks[playerRank] <= ranks[minRank] and ranks[playerRank] >= ranks[maxRank] then
-			return true
-		else
-			return false
-		end
-	end
+function isPlayerAbleTo(player, event)
+  if player.tag ~= nil then
+    local playerRank = NameToId(player.tag)
+		if event == "basic" then
+      if playerRank <= 4 then return true else return false end 
+		elseif event == "rank" then
+      if playerRank <= 1 then return true else return false end 
+    elseif event == "jail" then
+      if playerRank <= 2 then return true else return false end 
+    elseif event == "spectate" then
+      if playerRank <= 2 then return true else return false end 
+    elseif event == "modifier" then
+      if playerRank <= 1 then return true else return false end 
+    elseif event == "deconstruct" then
+      if playerRank <= 3 then return true else return false end 
+    elseif event == "rotate" then
+      if playerRank <= 3 then return true else return false end 
+    elseif event == "blueprint" then
+      if playerRank <= 3 then return true else return false end 
+    end
+  end
 end
+function setPlayerRank(player, byPlayer, rank)
+  if type(byPlayer) ~= "string" then
+    if isPlayerAbleTo(byPlayer, "rank") == true and rank ~= "owner" then
+      player.tag = rank
+      player.print("Your rank has been updated by " .. byPlayer.name .. " to: " .. rank)
+    else
+      byPlayer.print("Your rank is to low to set a rank for an other player")
+    end
+  elseif byPlayer == "system" then
+    player.tag = rank
+    player.print("Your rank has been updated by the auto ranking system to: " .. rank)
+  end
+end
+function getPlayerRank(player)
+  return player.tag
+end
+function idToName(id)
+  return ranks[name].name
+end
+function NameToId(name)
+  for i, rank in pairs(ranks) do
+    if rank.name == name then return rank.id else return 0 end
+  end
+end
+function jailController(player, byPlayer, rankToMoveTo)
+  if player.tag == "jail" and rank ~= nil then
+    player.print("You are now out of jail, thanks to " .. byPlayer)
+    setPlayerRank(player, byPlayer, rankToMoveTo)
+    player.character.active = true
+  else
+    player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
+    setPlayerRank(player, byPlayer, "jail")
+    player.character.active = false
+  end
+end
+function warning(player, byPlayer)
 
+end
+-----------------------------------------------------------------------------------
+-----------------------------Advanced Functions------------------------------------
 -----------------------------------------------------------------------------------
 function encode ( table, name, items )
   local encodeString
@@ -101,100 +169,27 @@ function encode ( table, name, items )
   return encodeString
 end
 -----------------------------------------------------------------------------------
-function editRank(currentPlayer, player, rank)
-	if rank ~= 'owner' then
-		local playerRank = ranks[playerRanks[player.index]]-1
-		for rank in pairs(ranks) do
-			if playerRank == ranks[rank] then playerRank = rank break end end
-		if type(playerRank) == 'number' then playerRank = 'owner' end
-		if testRank(currentPlayer, playerRank) and testRank(currentPlayer, rank) then
-			playerRanks[player.index] = rank
-			jailControler(player, currentPlayer)
-			clearElement(player.gui.left)
-			drawPlayerList()
-			drawToolbar(player)
-		else
-			currentPlayer.print('You can not give this rank to this player')
-		end
-	else
-		if currentPlayer.index == currentOwner then
-			currentPlayer.print('Owner can only be transfered. It can not be given')
-		else
-			currentPlayer.print('You can not give this rank')
-		end
-	end
-end
------------------------------------------------------------------------------------
-function setUpRanks()
-	for i, player in pairs(game.players) do
-		if player.connected == true then
-			if i == currentOwner then
-				playerRanks[player.index] = 'owner'
-			elseif player.admin then
-				playerRanks[player.index] = 'admin'
-			elseif ticktohour(player.online_time) > 10 then
-				playerRanks[player.index] = 'mod'
-			elseif ticktohour(player.online_time) > 2 then
-				playerRanks[player.index] = 'reg'
-			elseif player.character.active == true then
-				playerRanks[player.index] = 'guest'
-			else
-				playerRanks[player.index] = 'jail'
-			end
-			game.players[1].print(player.name .. ' ' .. playerRanks[player.index])
-			drawToolbar(player)
-		end
-	end
-end
------------------------------------------------------------------------------------
-function warning(player, byPlayer)
-  local byPlayer = byPlayer
-  if byPlayer ~= "system" then
-    if type(byPlayer) == "string" then
-      byPlayer = game.players[byPlayer]
-    end
-  else
-    byPlayer = game.players[1]
-  end
-  
-  if testRank(player, 'guest', 'reg') then
-    if warnings[player.index] == nil then
-      warnings[player.index] = 1
-    else
-      warnings[player.index] = warnings[player.index] +1
-    end
-    if warnings[player.index] > warningAllowed then
-      warnings[player.index]=0
-      playerRanks[player.index] = 'jail'
-      drawPlayerList()
-      drawToolbar(player)
-      jailControler(player, byPlayer)
-    else
-      local warningsLeft = warningAllowed-warnings[player.index]
-      player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
-    end
-  else
-    byPlayer.print('Their rank is too high to give warnings to.')
-  end
-end
------------------------------------------------------------------------------------
 -----------------------------Button Functions--------------------------------------
 -----------------------------------------------------------------------------------
 function drawToolbar(player)
   game.speed = 0.6
   local frame = player.gui.top
   clearElement(frame)
-  if testRank(player, 'guest') then
+  if isPlayerAbleTo(player, "basic") == true then
     frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
     frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."}
     frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."}
   end
-  if testRank(player, 'mod') then
-	frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
-	frame.add{name="btn_jail", type = "button", caption="Jail"}
+  if isPlayerAbleTo(player, "spectate") == true then
+	  frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
   end
-  if testRank(player, 'admin') then
-	frame.add{name="btn_toolbar_rank", type = "button", caption="Rank"}
+  if isPlayerAbleTo(player, "jail") == true then
+	  frame.add{name="btn_jail", type = "button", caption="Jail"}
+  end
+  if isPlayerAbleTo(player, "rank") then
+	  frame.add{name="btn_toolbar_rank", type = "button", caption="Rank"}
+  end
+  if isPlayerAbleTo(player, "modifier") then
     frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
   end
 end
@@ -309,21 +304,6 @@ function drawPlayers(play, frame, players)
   drawPlayerTable(play, frame.flowContent, "PlayerTable", false, nil, nil)
 end
 -----------------------------------------------------------------------------------
-function jailControler(player, byPlayer)
-	if testRank(player, 'jail', 'jail') then
-    if type(byPlayer) == 'string' then
-      player.print('You have been Jailed by ' .. byPlayer .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
-		  callRank(player.name .. " has been Jailed by " .. byPlayer, 'mod')
-    else
-      player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
-		  callRank(player.name .. " has been Jailed by " .. byPlayer.name, 'mod')
-    end
-		player.character.active = false
-	else
-		player.character.active = true
-	end
-end
------------------------------------------------------------------------------------
 -----------------------------GUI Functions-----------------------------------------
 -----------------------------------------------------------------------------------
 function RankGui(player, event)
@@ -339,7 +319,7 @@ function RankGui(player, event)
 			frame.flowActions.add{name='rankApply', type='button', caption='Apply'}
 			frame.flowActions.add{name='rankClose', type='button', caption='Close'}
       for i, rank in pairs(ranks) do
-        frame.flowRanks.add{name=tostring(rank), type="radiobutton", state=false, caption=tostring(rank)}
+        frame.flowRanks.add{name=rank.name, type="radiobutton", state=false, caption=rank.name}
       end
 		end
 	end
@@ -454,24 +434,24 @@ function drawPlayerList()
     end
     for i, player in pairs(game.players) do
       if a.gui.left.PlayerList[player.name] == nil and player.connected == true then
-        if testRank(player, 'owner') then
+        if player.tag == "owner" then
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=170,g=0,b=0}
-        elseif testRank(player, 'admin') then
+        elseif player.tag == "admin" then
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=233,g=63,b=233}
-        elseif testRank(player, 'mod') then
+        elseif player.tag == "mod" then
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - MOD"}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=0,g=170,b=0}
-		elseif testRank(player, 'reg') then
-          a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - REG"}}
-          a.gui.left.PlayerList[player.name].style.font_color = {r=111,g=0,b=170}
-		elseif testRank(player, 'guest') then
-          a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
-          a.gui.left.PlayerList[player.name].style.font_color = {r=255,g=153,b=51}
-		elseif testRank(player, 'jail') then
-          a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - JAIL"}}
-          a.gui.left.PlayerList[player.name].style.font_color = {r=175,g=175,b=175}
+        elseif player.tag == "reg" then
+              a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - REG"}}
+              a.gui.left.PlayerList[player.name].style.font_color = {r=40,g=160,b=170}
+        elseif player.tag == "guest" then
+              a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
+              a.gui.left.PlayerList[player.name].style.font_color = {r=255,g=153,b=51}
+        elseif player.tag == "jail" then
+              a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - JAIL"}}
+              a.gui.left.PlayerList[player.name].style.font_color = {r=175,g=175,b=175}
         end
       elseif a.gui.left.PlayerList[player.name] ~= nil and player.connected ~= true then
         a.gui.left.PlayerList[player.name].destroy()
@@ -491,7 +471,6 @@ function drawPlayerTable(play, guiroot, tablename, isAdminonly)
   guiroot[tablename].add{name="admin", type="label", caption="Admin"}
   for i, player in pairs(game.players) do
     if isAdminonly == true and player.admin == false then
-      
     else
       if guiroot[tablename][player.name] == nil then
         guiroot[tablename].add{name=i .. "id", type="label", caption=i}
@@ -594,23 +573,21 @@ function modifierController(play, button)
     end
   end
   local function drawFrame ()
-    if testRank(play, 'admin') then
-      local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
-            frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-            frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-            frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
-            frame.flowContent.add{name="modifierTable", type="table", colspan=3}
-            frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
-            frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
-            frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
-      for i, modifier in pairs(forceModifiers) do
-            frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
-            frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
-            frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
-      end
-            frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
-            frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
+    local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
+          frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+          frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+          frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
+          frame.flowContent.add{name="modifierTable", type="table", colspan=3}
+          frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
+          frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
+          frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
+    for i, modifier in pairs(forceModifiers) do
+          frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
+          frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
+          frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
     end
+          frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
+          frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
   end
   if button == true then
     apply()
@@ -618,9 +595,9 @@ function modifierController(play, button)
     if play.gui.center.modifier ~= nil then
       play.gui.center.modifier.destroy()
     else
-		if testRank(play, 'admin') then
-			drawFrame()
-		end
+      if isPlayerAbleTo(play, "modifier") == true then
+        drawFrame()
+      end
     end
   end
 end
@@ -687,28 +664,28 @@ script.on_event(defines.events.on_gui_checked_state_changed, function(event)
   local player = game.players[event.player_index]
   local Rplayer = player.gui.left.RankGUI.flowPlayerName.playerT.text
   local check = event.element.name
-  if check == "0" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "0")
-  elseif check == "1" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "1")
-  elseif check == "2" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "2")
-  elseif check == "3" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "3")
-  elseif check == "4" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "4")
-  elseif check == "5" then
-    clearCheck(player.gui.left.RankGUI.flowRanks, "5")
+  if check == "owner" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "owner")
+  elseif check == "admin" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "admin")
+  elseif check == "mod" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "mod")
+  elseif check == "reg" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "reg")
+  elseif check == "guest" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "guest")
+  elseif check == "jail" then
+    clearCheck(player.gui.left.RankGUI.flowRanks, "jail")
   end
 end)
 
 function clearCheck(element, notToClear)
-    for i, checkElement in pairs(element.children_names) do
-      if element[checkElement].name ~= notToClear then
-        element[checkElement].state = false
-      end
+  for i, checkElement in pairs(element.children_names) do
+    if element[checkElement].name ~= notToClear then
+      element[checkElement].state = false
     end
   end
+end
 -----------------------------------------------------------------------------------
 -----------------------------On Player Events--------------------------------------
 -----------------------------------------------------------------------------------
@@ -740,31 +717,28 @@ script.on_event(defines.events.on_player_respawned, function(event)
 end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_player_joined_game, function(event)
-  setUpRanks()
   local player = game.players[event.player_index]
-  player.print({"", "Welcome"})
-  if player.gui.left.PlayerList ~= nil then
-    player.gui.left.PlayerList.destroy()
-  end
-  if player.gui.center.README ~= nil then
-    player.gui.center.README.destroy()
-  end
-  if player.gui.top.PlayerList ~= nil then
-    player.gui.top.PlayerList.destroy()
-  end
+  player.print("Welcome to TNT - Explosive gaming")
   local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
   game.write_file("players.json", playerStringTable, false)
-  if testRank(player, 'guest', 'guest') then
+  if player.tag == nil and player.index ~= 1 then
+    setPlayerRank(player, "system", "guest")
+  elseif player.index == 1 then
+    setPlayerRank(player, "system", "owner")
+  elseif player.admin == true then
+    setPlayerRank(player, "system", "admin")
+  end
+  if player.tag == "guest" then
     drawREADME(player, "Rules", true)
   end
-  setUpRanks()
   drawPlayerList()
+  drawToolbar()
 end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_player_left_game, function(event)
   local player = game.players[event.player_index]
   drawPlayerList(player)
-  setUpRanks()
+  drawToolbar()
 end)
 -----------------------------------------------------------------------------------
 -----------------------------Other Events------------------------------------------
@@ -803,11 +777,11 @@ end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_marked_for_deconstruction, function(event)
 	local player = game.players[event.player_index]
-	if testRank(player, 'jail', 'guest') then
+	if isPlayerAbleTo(player, "deconstruct") then
 		if event.entity.type ~= "tree" and event.entity.type ~= "simple-entity" then
 			event.entity.cancel_deconstruction("player")
 			player.print("You are not allowed to do this yet, play for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(player.online_time))) .. " minutes")
-			callRank(player.name .. " tryed to deconstruced something", 'mod')
+			callRank(player.name .. " tryed to deconstruced something", 2)
 			warning(player, 'system')
 		end
 	end
@@ -817,7 +791,7 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
   local player = game.players[event.player_index]
   local lotOfBelt = 5
   local entity = event.entity.name
-	if testRank(player, 'jail', 'guest') then
+	if isPlayerAbleTo(player, "rotate") == false then
 		if entity == "express-transport-belt" or entity == "fast-transport-belt" or entity == "transport-belt" then
 			if itemRotated[event.player_index] == nil then
 				itemRotated[event.player_index] = 1
@@ -826,7 +800,7 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
 			end
 			if itemRotated[event.player_index] >= lotOfBelt then
 				itemRotated[event.player_index]=0
-				callRank(player.name .. " has rotated a lot of belts", 'mod')
+				callRank(player.name .. " has rotated a lot of belts", 2)
 				warning(player, 'system')
 			end
 		end
@@ -835,14 +809,13 @@ end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_built_entity, function(event)
 	local player = game.players[event.player_index]
-	if testRank(player, 'jail', 'guest') then
+	if isPlayerAbleTo(player, "blueprint") == false then
 		if event.created_entity.type == "tile-ghost" then
 			event.created_entity.destroy()
 			player.print("You are not allowed to do this yet, play for a bit longer. Try: " .. math.floor((timeForRegular - ticktominutes(player.online_time))) .. " minutes")
-			callRank(player.name .. " tryed to place concrete/stone with robots", 'mod')
+			callRank(player.name .. " tryed to place concrete/stone with robots", 2)
 			warning(player, 'system')
 		end
 	end
 end)
-
 -----------------------------------------------------------------------------------
