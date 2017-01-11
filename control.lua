@@ -104,17 +104,21 @@ function setPlayerRank(player, byPlayer, rank)
     player.print("Your rank has been updated by the auto ranking system to: " .. rank)
   end
 end
+
 function getPlayerRank(player)
   return player.tag
 end
+
 function idToName(id)
   return ranks[name].name
 end
+
 function NameToId(name)
   for i, rank in pairs(ranks) do
     if rank.name == name then return rank.id else return 0 end
   end
 end
+
 function jailController(player, byPlayer, rankToMoveTo)
   if player.tag == "jail" and rank ~= nil then
     player.print("You are now out of jail, thanks to " .. byPlayer)
@@ -169,8 +173,6 @@ function encode ( table, name, items )
   return encodeString
 end
 -----------------------------------------------------------------------------------
-<<<<<<< HEAD
-=======
 function editRank(currentPlayer, player, rank)
 	if rank ~= 'owner' then
 		local playerRank = ranks[playerRanks[player.index]]-1
@@ -248,7 +250,6 @@ function warning(player, byPlayer)
   end
 end
 -----------------------------------------------------------------------------------
->>>>>>> refs/remotes/origin/master
 -----------------------------Button Functions--------------------------------------
 -----------------------------------------------------------------------------------
 function drawToolbar(player)
