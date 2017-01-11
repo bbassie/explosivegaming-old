@@ -2,8 +2,9 @@
 -----------------------------Varabliles--------------------------------------------
 -----------------------------------------------------------------------------------
 itemRotated = {}
-warningAllowed = 9999
-timeForRegular = 120
+warningAllowed = 5
+timeForRegular = 180
+timeForMod = 600
 warnings = {}
 entityCache = {}
 spectating = {}
@@ -53,7 +54,7 @@ end
 -----------------------------------------------------------------------------------
 function callRank(msg, minRank, maxRank)
 	for _, player in pairs(game.players) do 
-		if testRank(player, minRank, maxRank) then
+		if isPlayerAbleTo(player, "readAdminChat") then
 			player.print(msg)
 		end
 	end
@@ -88,20 +89,47 @@ function isPlayerAbleTo(player, event)
       if playerRank <= 3 then return true else return false end 
     elseif event == "blueprint" then
       if playerRank <= 3 then return true else return false end 
+    elseif event == "readAdminChat" then
+      if playerRank <= 2 then return true else return false end 
+    elseif event == "getWarning" then
+      if playerRank >= 4 then return true else return false end  
     end
   end
 end
 function setPlayerRank(player, byPlayer, rank)
-  if type(byPlayer) ~= "string" then
+  if type(byPlayer) ~= "string" and player.index ~= currentOwner then
     if isPlayerAbleTo(byPlayer, "rank") == true and rank ~= "owner" then
       player.tag = rank
-      player.print("Your rank has been updated by " .. byPlayer.name .. " to: " .. rank)
+      if rank ~= "jail" then
+        player.print("Your rank has been updated by " .. byPlayer.name .. " to: " .. rank)
+        if player.character == nil then player.character = spectating[player.index] end
+        player.character.active = true
+        warnings[player.index]=0
+        refreshRank()
+      else
+        player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
+        if player.character  == nil then player.character = spectating[player.index] end
+        player.character.active = false
+        refreshRank()
+      end
     else
       byPlayer.print("Your rank is to low to set a rank for an other player")
     end
-  elseif byPlayer == "system" then
-    player.tag = rank
-    player.print("Your rank has been updated by the auto ranking system to: " .. rank)
+  elseif byPlayer == "system" and player.index ~= currentOwner then
+    if rank ~= "jail" then
+        player.print("Your rank has been updated by the auto ranking system to: " .. rank)
+        if player.character == nil then player.character = spectating[player.index] end
+        player.character.active = true
+        player.tag = rank
+        warnings[player.index]=0
+        refreshRank()
+      else
+        player.print('You have been Jailed by the auto ranking system, please leave or contact a admin at https://discord.gg/XSsBV6b')
+        if player.character  == nil then player.character = spectating[player.index] end
+        player.character.active = false
+        player.tag = rank
+        refreshRank()
+      end
   end
 end
 
@@ -109,45 +137,59 @@ function getPlayerRank(player)
   return player.tag
 end
 
-function idToName(id)
-  return ranks[name].name
-end
-
 function NameToId(name)
   for i, rank in pairs(ranks) do
-    if rank.name == name then return rank.id else return 0 end
+    if rank.name == name then return rank.id else return 4 end
   end
 end
 
-function jailController(player, byPlayer, rankToMoveTo)
-  if player.tag == "jail" and rank ~= nil then
-    player.print("You are now out of jail, thanks to " .. byPlayer)
-    setPlayerRank(player, byPlayer, rankToMoveTo)
-    player.character.active = true
-  else
-    player.print('You have been Jailed by ' .. byPlayer.name .. ', please leave or contact a admin at https://discord.gg/XSsBV6b')
-    setPlayerRank(player, byPlayer, "jail")
-    player.character.active = false
-  end
-end
-
-function refreshRank()
+function refreshRank(player)
   for i, player in pairs(game.players) do
     if player.connected == true then
       if i == currentOwner then
-				playerRanks[player.index] = 'owner'
+				player.tag = 'owner'
+      elseif player.tag == "jail" then
+        player.tag = 'jail'
 			elseif player.admin then
-				playerRanks[player.index] = 'admin'
-			elseif ticktohour(player.online_time) > 10 then
-				playerRanks[player.index] = 'mod'
-			elseif ticktohour(player.online_time) > 2 then
-				playerRanks[player.index] = 'reg'
-			elseif player.character.active == true then
-				playerRanks[player.index] = 'guest'
+				player.tag = 'admin'
+			elseif ticktominutes(player.online_time) >= timeForMod or player.tag == "mod" then
+				player.tag = 'mod'
+			elseif ticktominutes(player.online_time) >= timeForRegular or player.tag == "reg"  then
+				player.tag = 'reg'
+			elseif player ~= nil then
+				player.tag = 'guest'
 			else
-				playerRanks[player.index] = 'jail'
+				player.tag = 'jail'
 			end
     end
+  end
+  drawToolbar()
+  drawPlayerList()
+end
+
+function warning(player, byPlayer)
+  local byPlayer = byPlayer
+  if byPlayer ~= "system" then
+    if type(byPlayer) == "string" then
+      byPlayer = game.players[byPlayer]
+    end
+  else
+    byPlayer = game.players[1]
+  end
+  if isPlayerAbleTo(player, "getWarning") then
+    if warnings[player.index] == nil then
+      warnings[player.index] = 1
+    else
+      warnings[player.index] = warnings[player.index] +1
+    end
+    if warnings[player.index] > warningAllowed then
+      setPlayerRank(player, "system", "jail")
+    else
+      local warningsLeft = warningAllowed-warnings[player.index]
+      player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
+    end
+  else
+    byPlayer.print('Their rank is too high to give warnings to.')
   end
 end
 -----------------------------------------------------------------------------------
@@ -190,37 +232,6 @@ function encode ( table, name, items )
   return encodeString
 end
 -----------------------------------------------------------------------------------
-function warning(player, byPlayer)
-  local byPlayer = byPlayer
-  if byPlayer ~= "system" then
-    if type(byPlayer) == "string" then
-      byPlayer = game.players[byPlayer]
-    end
-  else
-    byPlayer = game.players[1]
-  end
-  
-  if testRank(player, 'guest', 'reg') then
-    if warnings[player.index] == nil then
-      warnings[player.index] = 1
-    else
-      warnings[player.index] = warnings[player.index] +1
-    end
-    if warnings[player.index] > warningAllowed then
-      warnings[player.index]=0
-      playerRanks[player.index] = 'jail'
-      drawPlayerList()
-      drawToolbar(player)
-      jailControler(player, byPlayer)
-    else
-      local warningsLeft = warningAllowed-warnings[player.index]
-      player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
-    end
-  else
-    byPlayer.print('Their rank is too high to give warnings to.')
-  end
-end
------------------------------------------------------------------------------------
 -----------------------------Button Functions--------------------------------------
 -----------------------------------------------------------------------------------
 function drawToolbar()
@@ -236,9 +247,6 @@ function drawToolbar()
     if isPlayerAbleTo(player, "spectate") == true then
       frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
     end
-    if isPlayerAbleTo(player, "jail") == true then
-      frame.add{name="btn_jail", type = "button", caption="Jail"}
-    end
     if isPlayerAbleTo(player, "rank") then
       frame.add{name="btn_toolbar_rank", type = "button", caption="Rank"}
     end
@@ -249,7 +257,7 @@ function drawToolbar()
 end
 -----------------------------------------------------------------------------------
 function spectate (player)
-  if testRank(player, 'mod') then
+  if isPlayerAbleTo(player, "spectate") then
     if player.character ~= nil then
       spectating[player.index] = player.character
       player.character = nil
@@ -388,9 +396,9 @@ function RankGui(player, event)
     for i, checkElement in pairs(element.children_names) do
       if element[checkElement].state == true then
         if element[checkElement].name == "owner" then
-          return "owner"
+          return "mod"
         elseif element[checkElement].name == "admin" then
-          return "admin"
+          return "mod"
         elseif element[checkElement].name == "mod" then
           return "mod"
         elseif element[checkElement].name == "reg" then
@@ -405,12 +413,13 @@ function RankGui(player, event)
   end
 	local function apply()
 		local rank = checkBox(player.gui.left.RankGUI.flowRanks)
-		local Rplayer = player.gui.left.RankGUI.flowPlayerName.playerT.text
-		if isPlayerAbleTo(player, "rank") then
-			local Rplayer = game.players[Rplayer]
-      setPlayerRank(Rplayer, player, rank)
-      drawPlayerList()
-      drawToolbar()
+    if game.players[player.gui.left.RankGUI.flowPlayerName.playerT.text] ~= nil then
+      if isPlayerAbleTo(player, "rank") then
+        local Rplayer = game.players[player.gui.left.RankGUI.flowPlayerName.playerT.text]
+        setPlayerRank(Rplayer, player, rank)
+        drawPlayerList()
+        drawToolbar()
+      end
 		else
 			player.print('Entry was invalid')
 		end
@@ -431,53 +440,6 @@ function RankGui(player, event)
 			drawFrame()
 		end
   end
-end
------------------------------------------------------------------------------------
-function jailGui(player, event)
-	local function drawFrame()
-		if testRank(player, 'mod') then
-			frame = player.gui.left.add{name='jailGui', type = 'frame', caption='Jail Controler', direction = "vertical"}
-			Table = frame.add{name='Table', type='table', colspan=2}
-			Table.add{name='player', type='label', caption='Player'}
-			Table.add{name='playerT', type='textfield', caption='Player text field', text='Enter Player Name'}
-			Table.add{name='jailApply', type='button', caption='Jail'}
-			Table.add{name='jailWarning', type='button', caption='Give Warning'}
-			Table.add{name='jailClose', type='button', caption='Close'}
-		end
-	end
-	local function apply(jail)
-		local Rplayer = player.gui.left.jailGui.Table.playerT.text
-		if jail then
-			if game.players[Rplayer] ~= nil then
-				local Rplayer = game.players[Rplayer]
-				if testRank(Rplayer, 'guest', 'reg') then
-					editRank(player, Rplayer, 'jail')
-				else
-					editRank(player, Rplayer, defaultRank)
-				end
-			else
-				player.print('Entry was invalid')
-			end
-		else
-			if game.players[Rplayer] ~= nil then
-				Rplayer = game.players[Rplayer]
-				warning(Rplayer, player)
-			else
-				player.print('Entry was invalid')
-			end
-		end
-	end
-	if event == 1 then
-		apply(true)
-	elseif event == 2 then
-		apply()
-	elseif event == 3 then
-		if player.gui.left.jailGui ~= nil then
-			player.gui.left.jailGui.destroy()
-		elseif player.gui.left.jailGui == nil then
-			drawFrame()
-		end
-    end
 end
 -----------------------------------------------------------------------------------
 function drawPlayerList()
@@ -501,7 +463,7 @@ function drawPlayerList()
           a.gui.left.PlayerList[player.name].style.font_color = {r=0,g=170,b=0}
         elseif player.tag == "reg" then
               a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - REG"}}
-              a.gui.left.PlayerList[player.name].style.font_color = {r=40,g=160,b=170}
+              a.gui.left.PlayerList[player.name].style.font_color = {r=0,g=221,b=221}
         elseif player.tag == "guest" then
               a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
               a.gui.left.PlayerList[player.name].style.font_color = {r=255,g=153,b=51}
@@ -706,14 +668,6 @@ script.on_event(defines.events.on_gui_click, function(event)
 	  RankGui(player, 3)
   elseif button == 'btn_toolbar_rank' then
 	  RankGui(player, 3)
-  elseif button == 'jailApply' then
-	  jailGui(player, 1)
-  elseif button == 'jailWarning' then
-	  jailGui(player, 2)
-  elseif button == 'jailClose' then
-	  jailGui(player, 3)
-  elseif button == 'btn_jail' then
-	  jailGui(player, 3)
   end
 end)
 script.on_event(defines.events.on_gui_checked_state_changed, function(event)
@@ -777,18 +731,10 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   player.print("Welcome to TNT - Explosive gaming")
   local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
   game.write_file("players.json", playerStringTable, false)
-  if player.tag == nil and player.index ~= 1 then
-    setPlayerRank(player, "system", "guest")
-  elseif player.index == 1 then
-    setPlayerRank(player, "system", "owner")
-  elseif player.admin == true then
-    setPlayerRank(player, "system", "admin")
-  end
   if player.tag == "guest" then
     drawREADME(player, "Rules", true)
   end
-  drawPlayerList()
-  drawToolbar()
+  refreshRank(player)
 end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_player_left_game, function(event)
@@ -833,7 +779,7 @@ end)
 -----------------------------------------------------------------------------------
 script.on_event(defines.events.on_marked_for_deconstruction, function(event)
 	local player = game.players[event.player_index]
-	if isPlayerAbleTo(player, "deconstruct") then
+	if isPlayerAbleTo(player, "deconstruct") == false then
 		if event.entity.type ~= "tree" and event.entity.type ~= "simple-entity" then
 			event.entity.cancel_deconstruction("player")
 			player.print("You are not allowed to do this yet, play for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(player.online_time))) .. " minutes")
