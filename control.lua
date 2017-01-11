@@ -42,13 +42,13 @@ defaultMaxRank = 'owner'
 -----------------------------Basic Functions---------------------------------------
 -----------------------------------------------------------------------------------
 function ticktohour (tick)
-    local hour = math.floor(tick * (1 /(60*game.speed)) / 3600)
-    return hour
+  local hour = math.floor(tick * (1 /(60*game.speed)) / 3600)
+  return hour
 end
 -----------------------------------------------------------------------------------
 function ticktominutes (tick)
-  	local minutes = math.floor((tick * (1 /(60*game.speed))) / 60)
-    return minutes
+  local minutes = math.floor((tick * (1 /(60*game.speed))) / 60)
+  return minutes
 end
 -----------------------------------------------------------------------------------
 function callRank(msg, minRank, maxRank)
