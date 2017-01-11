@@ -127,7 +127,7 @@ end
 -----------------------------------------------------------------------------------
 function setUpRanks()
 	for i, player in pairs(game.players) do
-		if player.connected == true then
+		if player.connected == true and player.character ~= nil then
 			if i == currentOwner then
 				playerRanks[player.index] = 'owner'
 			elseif player.admin then
