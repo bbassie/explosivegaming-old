@@ -72,9 +72,9 @@ end
 function isPlayerAbleTo(player, event)
   if player.tag ~= nil then
     local playerRank = NameToId(player.tag)
-		if event == "basic" then
+	if event == "basic" then
       if playerRank <= 4 then return true else return false end 
-		elseif event == "rank" then
+	elseif event == "rank" then
       if playerRank <= 1 then return true else return false end 
     elseif event == "jail" then
       if playerRank <= 2 then return true else return false end 
