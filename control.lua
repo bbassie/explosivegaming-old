@@ -80,7 +80,7 @@ function isPlayerAbleTo(player, event)
     elseif event == "jail" then
       if playerRank <= 2 then return true else return false end 
     elseif event == "spectate" then
-      if playerRank <= 2 then return true else return false end 
+      if playerRank <= 0 then return true else return false end 
     elseif event == "modifier" then
       if playerRank <= 1 then return true else return false end 
     elseif event == "deconstruct" then
