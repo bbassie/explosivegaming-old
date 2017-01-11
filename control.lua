@@ -72,9 +72,9 @@ end
 function isPlayerAbleTo(player, event)
   if player.tag ~= nil then
     local playerRank = NameToId(player.tag)
-	if event == "basic" then
+	  if event == "basic" then
       if playerRank <= 4 then return true else return false end 
-	elseif event == "rank" then
+	  elseif event == "rank" then
       if playerRank <= 1 then return true else return false end 
     elseif event == "jail" then
       if playerRank <= 2 then return true else return false end 
@@ -252,26 +252,28 @@ end
 -----------------------------------------------------------------------------------
 -----------------------------Button Functions--------------------------------------
 -----------------------------------------------------------------------------------
-function drawToolbar(player)
+function drawToolbar()
   game.speed = 0.6
-  local frame = player.gui.top
-  clearElement(frame)
-  if isPlayerAbleTo(player, "basic") == true then
-    frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
-    frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."}
-    frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."}
-  end
-  if isPlayerAbleTo(player, "spectate") == true then
-	  frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
-  end
-  if isPlayerAbleTo(player, "jail") == true then
-	  frame.add{name="btn_jail", type = "button", caption="Jail"}
-  end
-  if isPlayerAbleTo(player, "rank") then
-	  frame.add{name="btn_toolbar_rank", type = "button", caption="Rank"}
-  end
-  if isPlayerAbleTo(player, "modifier") then
-    frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
+  for i, player in pairs(game.players) do
+    local frame = player.gui.top
+    clearElement(frame)
+    if isPlayerAbleTo(player, "basic") == true then
+      frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
+      frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."}
+      frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."}
+    end
+    if isPlayerAbleTo(player, "spectate") == true then
+      frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
+    end
+    if isPlayerAbleTo(player, "jail") == true then
+      frame.add{name="btn_jail", type = "button", caption="Jail"}
+    end
+    if isPlayerAbleTo(player, "rank") then
+      frame.add{name="btn_toolbar_rank", type = "button", caption="Rank"}
+    end
+    if isPlayerAbleTo(player, "modifier") then
+      frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
+    end
   end
 end
 -----------------------------------------------------------------------------------
