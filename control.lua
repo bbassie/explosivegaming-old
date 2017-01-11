@@ -169,6 +169,86 @@ function encode ( table, name, items )
   return encodeString
 end
 -----------------------------------------------------------------------------------
+<<<<<<< HEAD
+=======
+function editRank(currentPlayer, player, rank)
+	if rank ~= 'owner' then
+		local playerRank = ranks[playerRanks[player.index]]-1
+		for rank in pairs(ranks) do
+			if playerRank == ranks[rank] then playerRank = rank break end end
+		if type(playerRank) == 'number' then playerRank = 'owner' end
+		if testRank(currentPlayer, playerRank) and testRank(currentPlayer, rank) then
+			playerRanks[player.index] = rank
+			jailControler(player, currentPlayer)
+			clearElement(player.gui.left)
+			drawPlayerList()
+			drawToolbar(player)
+		else
+			currentPlayer.print('You can not give this rank to this player')
+		end
+	else
+		if currentPlayer.index == currentOwner then
+			currentPlayer.print('Owner can only be transfered. It can not be given')
+		else
+			currentPlayer.print('You can not give this rank')
+		end
+	end
+end
+-----------------------------------------------------------------------------------
+function setUpRanks()
+	for i, player in pairs(game.players) do
+		if player.connected == true and player.character ~= nil then
+			if i == currentOwner then
+				playerRanks[player.index] = 'owner'
+			elseif player.admin then
+				playerRanks[player.index] = 'admin'
+			elseif ticktohour(player.online_time) > 10 then
+				playerRanks[player.index] = 'mod'
+			elseif ticktohour(player.online_time) > 2 then
+				playerRanks[player.index] = 'reg'
+			elseif player.character.active == true then
+				playerRanks[player.index] = 'guest'
+			else
+				playerRanks[player.index] = 'jail'
+			end
+			game.players[1].print(player.name .. ' ' .. playerRanks[player.index])
+			drawToolbar(player)
+		end
+	end
+end
+-----------------------------------------------------------------------------------
+function warning(player, byPlayer)
+  local byPlayer = byPlayer
+  if byPlayer ~= "system" then
+    if type(byPlayer) == "string" then
+      byPlayer = game.players[byPlayer]
+    end
+  else
+    byPlayer = game.players[1]
+  end
+  
+  if testRank(player, 'guest', 'reg') then
+    if warnings[player.index] == nil then
+      warnings[player.index] = 1
+    else
+      warnings[player.index] = warnings[player.index] +1
+    end
+    if warnings[player.index] > warningAllowed then
+      warnings[player.index]=0
+      playerRanks[player.index] = 'jail'
+      drawPlayerList()
+      drawToolbar(player)
+      jailControler(player, byPlayer)
+    else
+      local warningsLeft = warningAllowed-warnings[player.index]
+      player.print('You have been given a warning by ' .. byPlayer.name .. ', you have ' .. warningsLeft .. ' left.')
+    end
+  else
+    byPlayer.print('Their rank is too high to give warnings to.')
+  end
+end
+-----------------------------------------------------------------------------------
+>>>>>>> refs/remotes/origin/master
 -----------------------------Button Functions--------------------------------------
 -----------------------------------------------------------------------------------
 function drawToolbar(player)
