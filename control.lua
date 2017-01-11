@@ -130,8 +130,25 @@ function jailController(player, byPlayer, rankToMoveTo)
     player.character.active = false
   end
 end
-function warning(player, byPlayer)
 
+function refreshRank()
+  for i, player in pairs(game.players) do
+    if player.connected == true then
+      if i == currentOwner then
+				playerRanks[player.index] = 'owner'
+			elseif player.admin then
+				playerRanks[player.index] = 'admin'
+			elseif ticktohour(player.online_time) > 10 then
+				playerRanks[player.index] = 'mod'
+			elseif ticktohour(player.online_time) > 2 then
+				playerRanks[player.index] = 'reg'
+			elseif player.character.active == true then
+				playerRanks[player.index] = 'guest'
+			else
+				playerRanks[player.index] = 'jail'
+			end
+    end
+  end
 end
 -----------------------------------------------------------------------------------
 -----------------------------Advanced Functions------------------------------------
@@ -171,52 +188,6 @@ function encode ( table, name, items )
   end
   encodeString = "{" .. "\"" .. name .. "\": [" .. encodeSubString .. "]}"
   return encodeString
-end
------------------------------------------------------------------------------------
-function editRank(currentPlayer, player, rank)
-	if rank ~= 'owner' then
-		local playerRank = ranks[playerRanks[player.index]]-1
-		for rank in pairs(ranks) do
-			if playerRank == ranks[rank] then playerRank = rank break end end
-		if type(playerRank) == 'number' then playerRank = 'owner' end
-		if testRank(currentPlayer, playerRank) and testRank(currentPlayer, rank) then
-			playerRanks[player.index] = rank
-			jailControler(player, currentPlayer)
-			clearElement(player.gui.left)
-			drawPlayerList()
-			drawToolbar(player)
-		else
-			currentPlayer.print('You can not give this rank to this player')
-		end
-	else
-		if currentPlayer.index == currentOwner then
-			currentPlayer.print('Owner can only be transfered. It can not be given')
-		else
-			currentPlayer.print('You can not give this rank')
-		end
-	end
-end
------------------------------------------------------------------------------------
-function setUpRanks()
-	for i, player in pairs(game.players) do
-		if player.connected == true and player.character ~= nil then
-			if i == currentOwner then
-				playerRanks[player.index] = 'owner'
-			elseif player.admin then
-				playerRanks[player.index] = 'admin'
-			elseif ticktohour(player.online_time) > 10 then
-				playerRanks[player.index] = 'mod'
-			elseif ticktohour(player.online_time) > 2 then
-				playerRanks[player.index] = 'reg'
-			elseif player.character.active == true then
-				playerRanks[player.index] = 'guest'
-			else
-				playerRanks[player.index] = 'jail'
-			end
-			game.players[1].print(player.name .. ' ' .. playerRanks[player.index])
-			drawToolbar(player)
-		end
-	end
 end
 -----------------------------------------------------------------------------------
 function warning(player, byPlayer)
@@ -391,7 +362,7 @@ end
 -----------------------------------------------------------------------------------
 function RankGui(player, event)
 	local function drawFrame()
-		if testRank(player, 'admin') then
+		if isPlayerAbleTo(player, "rank") then
 			frame = player.gui.left.add{name='RankGUI', type = 'frame', caption='Rank Editer', direction = "vertical"}
       frame.add{name='flowPlayerName', type='flow', direction = "horizontal"}
       frame.add{name='rank', type='label', caption='Rank to select from'}
@@ -416,17 +387,17 @@ function RankGui(player, event)
   local function checkBox(element)
     for i, checkElement in pairs(element.children_names) do
       if element[checkElement].state == true then
-        if element[checkElement].name == "0" then
+        if element[checkElement].name == "owner" then
           return "owner"
-        elseif element[checkElement].name == "1" then
+        elseif element[checkElement].name == "admin" then
           return "admin"
-        elseif element[checkElement].name == "2" then
+        elseif element[checkElement].name == "mod" then
           return "mod"
-        elseif element[checkElement].name == "3" then
+        elseif element[checkElement].name == "reg" then
           return "reg"
-        elseif element[checkElement].name == "4" then
+        elseif element[checkElement].name == "guest" then
           return "guest"
-        elseif element[checkElement].name == "5" then
+        elseif element[checkElement].name == "jail" then
           return "jail"
         end
       end
@@ -435,9 +406,11 @@ function RankGui(player, event)
 	local function apply()
 		local rank = checkBox(player.gui.left.RankGUI.flowRanks)
 		local Rplayer = player.gui.left.RankGUI.flowPlayerName.playerT.text
-		if isValdToMove(rank, Rplayer) then
+		if isPlayerAbleTo(player, "rank") then
 			local Rplayer = game.players[Rplayer]
-      editRank(player, Rplayer, rank)
+      setPlayerRank(Rplayer, player, rank)
+      drawPlayerList()
+      drawToolbar()
 		else
 			player.print('Entry was invalid')
 		end
