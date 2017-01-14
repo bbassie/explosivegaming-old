@@ -1,5 +1,6 @@
 
 itemRotated = {}
+entityRemoved = {}
 entityCache = {}
 spectating = {}
 
@@ -145,7 +146,7 @@ end)
 
 script.on_event(defines.events.on_player_rotated_entity, function(event)
 	local eplayer = game.players[event.player_index]
-  local lotOfBelt = 5
+	local lotOfBelt = 5
 	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
 		if event.entity.name == "express-transport-belt" or event.entity.name == "fast-transport-belt" or event.entity.name == "transport-belt" then
 			itemRotated[event.player_index] = itemRotated[event.player_index] or 1
@@ -160,12 +161,28 @@ end)
 
 script.on_event(defines.events.on_built_entity, function(event)
 	local eplayer = game.players[event.player_index]
-  local timeForRegular = 120
+	local timeForRegular = 120
 	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
 		if event.created_entity.type == "tile-ghost" then
 			event.created_entity.destroy()
 			eplayer.print("You are not allowed to do this yet, play for a bit longer. Try: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
 			callAdmin(eplayer.name .. " tryed to place concrete/stone with robots")
+		end
+	end
+end)
+
+script.on_event(defines.events.on_player_mined_item, function(event)
+	local eplayer = game.players[event.player_index]
+	local lotOfRemoving = 5
+	if not eplayer.admin and ticktominutes(eplayer.online_time) < 10 then
+		name = event.item_stack.name
+		if name ~= 'raw-wood' and name ~= 'coal' and name ~= 'copper-ore' and name ~= 'iron-ore' and name ~= 'stone' then
+			entityRemoved[event.player_index] = entityRemoved[event.player_index] or 1
+			entityRemoved[event.player_index] = entityRemoved[event.player_index] +1
+			if entityRemoved[event.player_index] >= lotOfRemoving then
+				entityRemoved[event.player_index]=0
+				callAdmin(eplayer.name .. " has removed alot of stuff and got from it a " .. name)
+			end
 		end
 	end
 end)
