@@ -5,15 +5,9 @@ spectating = {}
 
 warningAllowed = nil
 timeForRegular = 180
-timeForMod = nil
-warnings = nil
-playerRanks = nil
-ranks = nil
-currentOwner = nil
-defaultRank = nil
-defaultMinRank = nil
-defaultMaxRank = nil
-
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
+----------------------------------------------------------------------------------------
 function ticktohour (tick)
     local hour = tostring(math.floor(tick * (1 /(60*game.speed)) / 3600))
     return hour
@@ -24,6 +18,24 @@ function ticktominutes (tick)
     return minutes
 end
 
+function callAdmin(msg)
+	for _, player in pairs(game.players) do 
+		if player.admin then
+			player.print(msg)
+		end
+	end
+end
+
+function clearElement (elementToClear)
+  if elementToClear ~= nil then
+    for i, element in pairs(elementToClear.children_names) do
+      elementToClear[element].destroy()
+    end
+  end
+end
+----------------------------------------------------------------------------------------
+---------------------------Player Events------------------------------------------------
+----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_player_created, function(event)
   local player = game.players[event.player_index]
   player.insert{name="iron-plate", count=8}
@@ -50,6 +62,116 @@ script.on_event(defines.events.on_player_respawned, function(event)
   player.insert{name="firearm-magazine", count=10}
 end)
 
+script.on_event(defines.events.on_player_joined_game, function(event)
+  local player = game.players[event.player_index]
+  player.print({"", "Welcome"})
+  if player.gui.left.PlayerList ~= nil then
+    player.gui.left.PlayerList.destroy()
+  end
+  if player.gui.center.README ~= nil then
+    player.gui.center.README.destroy()
+  end
+  if player.gui.top.PlayerList ~= nil then
+    player.gui.top.PlayerList.destroy()
+  end
+  drawToolbar()
+  drawPlayerList()
+  local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
+  game.write_file("players.json", playerStringTable, false)
+  if not player.admin and ticktominutes(player.online_time) < 1 then
+    ReadmeGui(player, "Rules")
+  end
+end)
+
+script.on_event(defines.events.on_player_left_game, function(event)
+  local player = game.players[event.player_index]
+  drawPlayerList()
+end)
+----------------------------------------------------------------------------------------
+---------------------------Gui Events---------------------------------------------------
+----------------------------------------------------------------------------------------
+script.on_event(defines.events.on_gui_click, function(event)
+  local player = game.players[event.player_index]
+  if event.element.name == "btn_readme" then
+    ReadmeGui(player, "Rules", true)
+  elseif event.element.name == "btn_readme_rules" then
+    player.gui.center.README.destroy()
+    ReadmeGui(player, "Rules")
+  elseif event.element.name == "btn_readme_server_info" then
+    player.gui.center.README.destroy()
+    ReadmeGui(player, "Server info")
+  elseif event.element.name == "btn_readme_chat" then
+    player.gui.center.README.destroy()
+    ReadmeGui(player, "Chat")
+  elseif event.element.name == "btn_readme_admins" then
+    player.gui.center.README.destroy()
+    ReadmeGui(player, "Admins")
+  elseif event.element.name == "btn_readme_players" then
+    player.gui.center.README.destroy()
+    ReadmeGui(player, "Players")
+  elseif event.element.name == "btn_readme_close" then
+    player.gui.center.README.destroy()
+  elseif event.element.name == "btn_toolbar_playerList" then
+    playerListGuiSwitch(player)
+  elseif event.element.name == "btn_toolbar_getPlayerInventory" then
+    drawGetPlayerInventory(player, nil)
+  elseif event.element.name == "btn_getPlayerInventory_close" then
+    player.gui.center.getPlayerInventory.destroy()
+  elseif event.element.name == "btn_Spectate" then
+    spectate(player)
+  elseif event.element.name == "btn_Modifier" then
+    modifierGui(player, false)
+  elseif event.element.name == "btn_Modifier_apply" then
+    modifierGui(player, true)
+  elseif event.element.name == "btn_Modifier_close" then
+    player.gui.center.modifier.destroy()
+  elseif event.element.name == "btn_toolbar_rocket_score" then
+    satelliteGuiSwitch(player)
+  end
+end)
+----------------------------------------------------------------------------------------
+---------------------------Grefer Events------------------------------------------------
+----------------------------------------------------------------------------------------
+script.on_event(defines.events.on_marked_for_deconstruction, function(event)
+	local eplayer = game.players[event.player_index]
+	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
+    if event.entity.type ~= "tree" and event.entity.type ~= "simple-entity" then
+      event.entity.cancel_deconstruction("player")
+      eplayer.print("You are not allowed to do this yet, play for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
+      callAdmin(eplayer.name .. " tryed to deconstruced something")
+    end
+	end
+end)
+
+script.on_event(defines.events.on_player_rotated_entity, function(event)
+	local eplayer = game.players[event.player_index]
+  local lotOfBelt = 5
+	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
+		if event.entity.name == "express-transport-belt" or event.entity.name == "fast-transport-belt" or event.entity.name == "transport-belt" then
+			itemRotated[event.player_index] = itemRotated[event.player_index] or 1
+			itemRotated[event.player_index] = itemRotated[event.player_index] +1
+			if itemRotated[event.player_index] >= lotOfBelt then
+				itemRotated[event.player_index]=0
+				callAdmin(eplayer.name .. " has rotated a lot of belts")
+			end
+		end
+	end
+end)
+
+script.on_event(defines.events.on_built_entity, function(event)
+	local eplayer = game.players[event.player_index]
+  local timeForRegular = 120
+	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
+		if event.created_entity.type == "tile-ghost" then
+			event.created_entity.destroy()
+			eplayer.print("You are not allowed to do this yet, play for a bit longer. Try: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
+			callAdmin(eplayer.name .. " tryed to place concrete/stone with robots")
+		end
+	end
+end)
+----------------------------------------------------------------------------------------
+---------------------------Other Events-------------------------------------------------
+----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_rocket_launched, function(event)
   local force = event.rocket.force
   if event.rocket.get_item_count("satellite") == 0 then
@@ -81,7 +203,9 @@ script.on_event(defines.events.on_rocket_launched, function(event)
     end
   end 
 end)
-
+----------------------------------------------------------------------------------------
+---------------------------IDK What There Do Functions----------------------------------
+----------------------------------------------------------------------------------------
 function encode ( table, name, items )
   local encodeString
   local encodeSubString
@@ -118,130 +242,12 @@ function encode ( table, name, items )
   encodeString = "{" .. "\"" .. name .. "\": [" .. encodeSubString .. "]}"
   return encodeString
 end
-
-function callAdmin(msg)
-	for _, player in pairs(game.players) do 
-		if player.admin then
-			player.print(msg)
-		end
-	end
-end
-	
-script.on_event(defines.events.on_marked_for_deconstruction, function(event)
-	local eplayer = game.players[event.player_index]
-  local timeForRegular = 120
-	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
-    if not event.entity.type == "tree" or not event.entity.type == "simple-entity" then
-      event.entity.cancel_deconstruction("player")
-      eplayer.print("You are not allowed to do this yet, play for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
-      callAdmin(eplayer.name .. " tryed to deconstruced something")
-    end
-	end
-end)
-
-script.on_event(defines.events.on_player_rotated_entity, function(event)
-	local eplayer = game.players[event.player_index]
-  local lotOfBelt = 5
-  local timeForRegular = 120
-	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
-		if event.entity.name == "express-transport-belt" or event.entity.name == "fast-transport-belt" or event.entity.name == "transport-belt" then
-			if itemRotated[event.player_index] == null then
-				itemRotated[event.player_index] = 1
-			else
-				itemRotated[event.player_index] = itemRotated[event.player_index] +1
-			end
-			if itemRotated[event.player_index] >= lotOfBelt then
-				itemRotated[event.player_index]=0
-				callAdmin(eplayer.name .. " has rotated a lot of belts")
-			end
-		end
-	end
-end)
-
-script.on_event(defines.events.on_built_entity, function(event)
-	local eplayer = game.players[event.player_index]
-  local timeForRegular = 120
-	if not eplayer.admin and ticktominutes(eplayer.online_time) < timeForRegular then
-		if event.created_entity.type == "tile-ghost" then
-			event.created_entity.destroy()
-			eplayer.print("You are not allowed to do this yet, play for a bit longer. Try: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
-			callAdmin(eplayer.name .. " tryed to place concrete/stone with robots")
-		end
-	end
-end)
-
-script.on_event(defines.events.on_player_joined_game, function(event)
-  local player = game.players[event.player_index]
-  player.print({"", "Welcome"})
-  if player.gui.left.PlayerList ~= nil then
-    player.gui.left.PlayerList.destroy()
-  end
-  if player.gui.center.README ~= nil then
-    player.gui.center.README.destroy()
-  end
-  if player.gui.top.PlayerList ~= nil then
-    player.gui.top.PlayerList.destroy()
-  end
-  drawToolbar()
-  drawPlayerList(player)
-  local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
-  game.write_file("players.json", playerStringTable, false)
-  if not player.admin and ticktominutes(player.online_time) < 1 then
-    drawREADME(player, "Rules", true)
-  end
-end)
-
-script.on_event(defines.events.on_player_left_game, function(event)
-  local player = game.players[event.player_index]
-  drawPlayerList(player)
-end)
-
-script.on_event(defines.events.on_gui_click, function(event)
-  local player = game.players[event.player_index]
-  if event.element.name == "btn_readme" then
-    README_Controller(player, "Rules", true)
-  elseif event.element.name == "btn_readme_rules" then
-    player.gui.center.README.destroy()
-    README_Controller(player, "Rules")
-  elseif event.element.name == "btn_readme_server_info" then
-    player.gui.center.README.destroy()
-    README_Controller(player, "Server info")
-  elseif event.element.name == "btn_readme_chat" then
-    player.gui.center.README.destroy()
-    README_Controller(player, "Chat")
-  elseif event.element.name == "btn_readme_admins" then
-    player.gui.center.README.destroy()
-    README_Controller(player, "Admins")
-  elseif event.element.name == "btn_readme_players" then
-    player.gui.center.README.destroy()
-    README_Controller(player, "Players")
-  elseif event.element.name == "btn_readme_close" then
-    player.gui.center.README.destroy()
-  elseif event.element.name == "btn_toolbar_playerList" then
-    playerListGuiSwitch(player)
-  elseif event.element.name == "btn_toolbar_getPlayerInventory" then
-    drawGetPlayerInventory(player, nil)
-  elseif event.element.name == "btn_getPlayerInventory_close" then
-    player.gui.center.getPlayerInventory.destroy()
-  elseif event.element.name == "btn_Spectate" then
-    spectate(player)
-  elseif event.element.name == "btn_Modifier" then
-    modifierController(player, false)
-  elseif event.element.name == "btn_Modifier_apply" then
-    modifierController(player, true)
-  elseif event.element.name == "btn_Modifier_close" then
-    player.gui.center.modifier.destroy()
-  elseif event.element.name == "btn_toolbar_rocket_score" then
-    satelliteGuiSwitch(player)
-  end
-end)
-
+----------------------------------------------------------------------------------------
+---------------------------Tool Bar-----------------------------------------------------
+----------------------------------------------------------------------------------------
 function drawToolbar()
   for i, a in pairs(game.players) do
     game.speed = 0.6
-    a.force.manual_mining_speed_modifier = 2
-    a.force.manual_crafting_speed_modifier = 1
-    a.force.character_running_speed_modifier = 2
     local frame = a.gui.top
     clearElement(frame)
     frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
@@ -251,86 +257,6 @@ function drawToolbar()
       frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
       frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
     end
-  end
-end
-
-function modifierController(play, button)
-  local forceModifiers = {
-    "manual_mining_speed_modifier",
-    "manual_crafting_speed_modifier",
-    "character_running_speed_modifier",
-    "worker_robots_speed_modifier",
-    "worker_robots_storage_bonus",
-    "character_build_distance_bonus",
-    "character_item_drop_distance_bonus",
-    "character_reach_distance_bonus",
-    "character_resource_reach_distance_bonus",
-    "character_item_pickup_distance_bonus",
-    "character_loot_pickup_distance_bonus"
-  }
-  local function apply ()
-    play.print("apply")
-    for i, modifier in pairs(forceModifiers) do 
-      local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("%d+"))
-      if number ~= nil then
-        if number > 1 and number < 50 and number ~= play.force[modifier] then
-          play.force[modifier] = number
-          play.print(modifier .. " changed to number: " .. tostring(number))
-        elseif number == play.force[modifier] then
-          play.print(modifier .. " Did not change")
-        else
-          play.print(modifier .. " needs to be a higher number or it contains an letter")
-        end
-      end
-    end
-  end
-  local function drawFrame ()
-    if play.admin == true or play.name == "test" then
-      local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
-            frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-            frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-            frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
-            frame.flowContent.add{name="modifierTable", type="table", colspan=3}
-            frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
-            frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
-            frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
-      for i, modifier in pairs(forceModifiers) do
-            frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
-            frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
-            frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
-      end
-            frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
-            frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
-    end
-  end
-  if button == true then
-    apply()
-  else
-    if play.gui.center.modifier ~= nil then
-      play.gui.center.modifier.destroy()
-    else
-      drawFrame()
-    end
-  end
-end
-
-function clearElement (elementToClear)
-  if elementToClear ~= nil then
-    for i, element in pairs(elementToClear.children_names) do
-      elementToClear[element].destroy()
-    end
-  end
-end
-
-function spectate (player)
-  if player.character ~= nil then
-    spectating[player.index] = player.character
-    player.character = nil
-    player.print("You are spectating")
-  else
-    player.character = spectating[player.index]
-    spectating[player.index] = nil
-    player.print("You are not spectating")
   end
 end
 
@@ -346,15 +272,29 @@ end
 
 function playerListGuiSwitch(play)
   if play.gui.left.PlayerList ~= nil then
-    if play.gui.left.PlayerList.style.visible == true then
-      play.gui.left.PlayerList.style.visible = false
-    else
+    if play.gui.left.PlayerList.style.visible == false then
       play.gui.left.PlayerList.style.visible = true
+    else
+      play.gui.left.PlayerList.style.visible = false
     end
   end
 end
 
-function drawPlayerList (play)
+function spectate (player)
+  if player.character ~= nil then
+    spectating[player.index] = player.character
+    player.character = nil
+    player.print("You are spectating")
+  else
+    player.character = spectating[player.index]
+    spectating[player.index] = nil
+    player.print("You are not spectating")
+  end
+end
+----------------------------------------------------------------------------------------
+---------------------------Player List--------------------------------------------------
+----------------------------------------------------------------------------------------
+function drawPlayerList()
   for i, a in pairs(game.players) do
     if a.gui.left.PlayerList == nil then
       a.gui.left.add{name= "PlayerList", type = "frame", direction = "vertical"}
@@ -407,8 +347,92 @@ function drawPlayerTable(play, guiroot, tablename, isAdminonly)
     end
   end
 end
-
-function README_Controller(play, page, btn)
+----------------------------------------------------------------------------------------
+---------------------------Read Me Gui--------------------------------------------------
+----------------------------------------------------------------------------------------
+function ReadmeGui(play, page, btn)
+	local function drawREADME(play, page)
+		local frame = play.gui.center.add{name= "README", type = "frame", direction = "vertical"}
+			frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+			frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+			frame.flowNavigation.add{name="btn_readme_rules", type = "button", caption="Rules", tooltip= "Rules."}
+			frame.flowNavigation.add{name="btn_readme_server_info", type = "button", caption="Server info", tooltip= "Server information page."}
+			frame.flowNavigation.add{name="btn_readme_chat", type = "button", caption="Chat", tooltip= "How to chat."}
+			frame.flowNavigation.add{name="btn_readme_admins", type = "button", caption="Admins", tooltip= "All the admins and info."}
+			frame.flowNavigation.add{name="btn_readme_players", type = "button", caption="Players", tooltip= "All the players that have joined this map."}
+			frame.flowNavigation.add{name="btn_readme_close", type = "button", caption="Close", tooltip= "Close the readme."}
+			frame.flowContent.style.maximal_height = 400
+			frame.flowContent.style.minimal_height = 400
+			frame.flowContent.style.maximal_width = 500
+			frame.flowContent.style.minimal_width = 500
+			frame.flowNavigation.style.maximal_width = 500
+			frame.flowNavigation.style.minimal_width = 500
+		ReadmeGui(play, page)
+	end
+	local function drawRules(play, frame)
+		local rules = {
+			"Hacking/cheating, exploiting and abusing bugs is not allowed.",
+			"Do not disrespect any player in the server (This includes staff).",
+			"Do not spam, this includes stuff such as chat spam, item spam, chest spam etc.",
+			"Do not laydown concrete with bots when you dont have permission to.",
+			"Do not walk in a random direction for no reason(to save map size).",
+			"Do not make train roundabouts.",
+			"Do not complain about lag, low fps and low ups or other things like that.",
+			"Do not ask for rank.",
+			"Left Hand Drive (LHD) only.",
+			"Use common sense."}
+		frame.caption = "Rules"
+		for i, rule in pairs(rules) do
+			frame.flowContent.add{name=i, type="label", caption={"", i ,". ", rule}}
+		end
+	end
+	local function drawServerInfo(play, frame)
+		local serverInfo = {
+			"Discord voice and chat server:",
+			"https://discord.gg/RPCxzgt",
+			"Our forum:",
+			"explosivegaming.nl",
+			"Game speed:",
+			"0.6 = 36 UPS / FPS",
+			"Because of the lower UPS other things like walking and crafting are at a higher speed"}
+		frame.caption = "Server info"
+		for i, line in pairs(serverInfo) do
+			frame.flowContent.add{name=i, type="label", caption={"", line}}
+		end
+	end
+	local function drawChat(play, frame)
+		local chat = {
+				"Chatting for new players can be difficult because it’s different than other games!",
+				"It’s very simple, the button you need to press is the “GRAVE/TILDE key”",
+				"it’s located under the “ESC key”. If you would like to change the key go to your",
+				"controls tab in options. The key you need to change is “Toggle Lua console”",
+				"it’s located in the second column 2nd from bottom."}
+		frame.caption = "Chat"
+		for i, line in pairs(chat) do
+			frame.flowContent.add{name=i, type="label", caption={"", line}}
+		end
+	end
+	local function drawAdmins(play, frame)
+		local admins = {
+			"This list contains all the people that are admin in this world. Do you want to become",
+			"an admin dont ask for it! an admin will see what you've made and the time you put",
+			"in the server."}
+		frame.caption = "Admins"
+		for i, line in pairs(admins) do
+			frame.flowContent.add{name=i, type="label", caption={"", line}}
+		end
+		drawPlayerTable(play, frame.flowContent, "AdminTable", true, nil, nil)
+	end
+	local function drawPlayers(play, frame, players)
+		local players = {
+			"These are the players who have supported us in the making of this factory. Without",
+			"you the player we wouldn't have been as far as we are now."}
+		frame.caption = "Players"
+		for i, line in pairs(players) do
+			frame.flowContent.add{name=i, type="label", caption={"", line}}
+		end
+		drawPlayerTable(play, frame.flowContent, "PlayerTable", false, nil, nil)
+	end
   if play.gui.center.README ~= nil then
     if page == "Rules" then
       if btn == true then
@@ -443,92 +467,65 @@ function README_Controller(play, page, btn)
     return
   end
 end
-
-function drawREADME(play, page)
-  local frame = play.gui.center.add{name= "README", type = "frame", direction = "vertical"}
-        frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-        frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-        frame.flowNavigation.add{name="btn_readme_rules", type = "button", caption="Rules", tooltip= "Rules."}
-        frame.flowNavigation.add{name="btn_readme_server_info", type = "button", caption="Server info", tooltip= "Server information page."}
-        frame.flowNavigation.add{name="btn_readme_chat", type = "button", caption="Chat", tooltip= "How to chat."}
-        frame.flowNavigation.add{name="btn_readme_admins", type = "button", caption="Admins", tooltip= "All the admins and info."}
-        frame.flowNavigation.add{name="btn_readme_players", type = "button", caption="Players", tooltip= "All the players that have joined this map."}
-        frame.flowNavigation.add{name="btn_readme_close", type = "button", caption="Close", tooltip= "Close the readme."}
-        frame.flowContent.style.maximal_height = 400
-        frame.flowContent.style.minimal_height = 400
-        frame.flowContent.style.maximal_width = 500
-        frame.flowContent.style.minimal_width = 500
-        frame.flowNavigation.style.maximal_width = 500
-        frame.flowNavigation.style.minimal_width = 500
-  README_Controller(play, page)
-end
-
-function drawRules(play, frame)
-  local rules = {
-    "Hacking/cheating, exploiting and abusing bugs is not allowed.",
-    "Do not disrespect any player in the server (This includes staff).",
-    "Do not spam, this includes stuff such as chat spam, item spam, chest spam etc.",
-    "Do not laydown concrete with bots when you dont have permission to.",
-    "Do not walk in a random direction for no reason(to save map size).",
-    "Do not make train roundabouts.",
-    "Do not complain about lag, low fps and low ups or other things like that.",
-    "Do not ask for rank.",
-    "Left Hand Drive (LHD) only.",
-    "Use common sense."
+----------------------------------------------------------------------------------------
+---------------------------Modifier Gui-------------------------------------------------
+----------------------------------------------------------------------------------------
+function modifierGui(play, button)
+  local forceModifiers = {
+    "manual_mining_speed_modifier",
+    "manual_crafting_speed_modifier",
+    "character_running_speed_modifier",
+    "worker_robots_speed_modifier",
+    "worker_robots_storage_bonus",
+    "character_build_distance_bonus",
+    "character_item_drop_distance_bonus",
+    "character_reach_distance_bonus",
+    "character_resource_reach_distance_bonus",
+    "character_item_pickup_distance_bonus",
+    "character_loot_pickup_distance_bonus"
   }
-  frame.caption = "Rules"
-  for i, rule in pairs(rules) do
-    frame.flowContent.add{name=i, type="label", caption={"", i ,". ", rule}}
+  local function apply()
+    play.print("apply")
+    for i, modifier in pairs(forceModifiers) do 
+      local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("%d+"))
+      if number ~= nil then
+        if number >= 0 and number < 50 and number ~= play.force[modifier] then
+          play.force[modifier] = number
+          play.print(modifier .. " changed to number: " .. tostring(number))
+        elseif number == play.force[modifier] then
+          play.print(modifier .. " Did not change")
+        else
+          play.print(modifier .. " needs to be a higher number or it contains an letter")
+        end
+      end
+    end
   end
-end
-function drawServerInfo(play, frame)
-  local serverInfo = {
-    "Discord voice and chat server:",
-    "https://discord.gg/RPCxzgt",
-    "Our forum:",
-    "explosivegaming.nl",
-    "Game speed:",
-    "0.6 = 36 UPS / FPS",
-    "Because of the lower UPS other things like walking and crafting are at a higher speed"
-  }
-  frame.caption = "Server info"
-  for i, line in pairs(serverInfo) do
-    frame.flowContent.add{name=i, type="label", caption={"", line}}
+  local function drawFrame ()
+    if play.admin == true or play.name == "test" then
+      local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
+            frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+            frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+            frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
+            frame.flowContent.add{name="modifierTable", type="table", colspan=3}
+            frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
+            frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
+            frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
+      for i, modifier in pairs(forceModifiers) do
+            frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
+            frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
+            frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
+      end
+            frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
+            frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
+    end
   end
-end
-function drawChat(play, frame)
-  local chat = {
-    "Chatting for new players can be difficult because it’s different than other games!",
-    "It’s very simple, the button you need to press is the “GRAVE/TILDE key”",
-    "it’s located under the “ESC key”. If you would like to change the key go to your",
-    "controls tab in options. The key you need to change is “Toggle Lua console”",
-    "it’s located in the second column 2nd from bottom."
-  }
-  frame.caption = "Chat"
-  for i, line in pairs(chat) do
-    frame.flowContent.add{name=i, type="label", caption={"", line}}
+  if button == true then
+    apply()
+  else
+    if play.gui.center.modifier ~= nil then
+      play.gui.center.modifier.destroy()
+    else
+      drawFrame()
+    end
   end
-end
-function drawAdmins(play, frame)
-  local admins = {
-    "This list contains all the people that are admin in this world. Do you want to become",
-    "an admin dont ask for it! an admin will see what you've made and the time you put",
-    "in the server."
-  }
-  frame.caption = "Admins"
-  for i, line in pairs(admins) do
-    frame.flowContent.add{name=i, type="label", caption={"", line}}
-  end
-  drawPlayerTable(play, frame.flowContent, "AdminTable", true, nil, nil)
-end
-function drawPlayers(play, frame, players)
-  local players = {
-    "These are the players who have supported us in the making of this factory. Without",
-    "you the player we wouldn't have been as far as we are now."
-  }
-  frame.caption = "Players"
-  for i, line in pairs(players) do
-    frame.flowContent.add{name=i, type="label", caption={"", line}}
-  end
-  drawPlayerTable(play, frame.flowContent, "PlayerTable", false, nil, nil)
 end
