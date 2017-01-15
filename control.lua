@@ -321,21 +321,21 @@ function drawPlayerList()
         if player.name == "badgamernl" or player.name == "BADgamerNL" then
         a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
         a.gui.left.PlayerList[player.name].style.font_color = {r=170,g=0,b=0}
-        a.tag = "[Owner]"
+        player.tag = "[Owner]"
         else
         a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
         a.gui.left.PlayerList[player.name].style.font_color = {r=233,g=63,b=233}
-        a.tag = "[Admin]"
+        player.tag = "[Admin]"
         end
       else
-        if ticktominutes(a.online_time) >= timeForRegular then
+        if ticktominutes(player.online_time) >= timeForRegular then
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=24,g=172,b=188}
-          a.tag = "[Regular]"
+          player.tag = "[Regular]"
         else
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=255,g=159,b=27}
-          a.tag = "[Guest]"
+          player.tag = "[Guest]"
         end
       end
     end
