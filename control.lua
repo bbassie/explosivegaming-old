@@ -264,7 +264,6 @@ end
 ----------------------------------------------------------------------------------------
 function drawToolbar()
   for i, a in pairs(game.players) do
-    game.speed = 0.6
     local frame = a.gui.top
     clearElement(frame)
     frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
@@ -316,22 +315,28 @@ function drawPlayerList()
     if a.gui.left.PlayerList == nil then
       a.gui.left.add{name= "PlayerList", type = "frame", direction = "vertical"}
     end
-    for i, player in pairs(game.players) do
-      if a.gui.left.PlayerList[player.name] == nil and player.connected == true then
-        if player.admin == true then
-          if player.name == "badgamernl" or player.name == "BADgamerNL" then
-            a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
-            a.gui.left.PlayerList[player.name].style.font_color = {r=170,g=0,b=0}
-          else
-            a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
-            a.gui.left.PlayerList[player.name].style.font_color = {r=233,g=63,b=233}
-          end
+    clearElement(a.gui.left.PlayerList)
+    for i, player in pairs(game.connected_players) do
+      if player.admin == true then
+        if player.name == "badgamernl" or player.name == "BADgamerNL" then
+        a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
+        a.gui.left.PlayerList[player.name].style.font_color = {r=170,g=0,b=0}
+        a.tag = "[Owner]"
+        else
+        a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
+        a.gui.left.PlayerList[player.name].style.font_color = {r=233,g=63,b=233}
+        a.tag = "[Admin]"
+        end
+      else
+        if ticktominutes(a.online_time) >= timeForRegular then
+          a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
+          a.gui.left.PlayerList[player.name].style.font_color = {r=24,g=172,b=188}
+          a.tag = "[Regular]"
         else
           a.gui.left.PlayerList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
           a.gui.left.PlayerList[player.name].style.font_color = {r=255,g=159,b=27}
+          a.tag = "[Guest]"
         end
-      elseif a.gui.left.PlayerList[player.name] ~= nil and player.connected ~= true then
-        a.gui.left.PlayerList[player.name].destroy()
       end
     end
   end
@@ -408,10 +413,8 @@ function ReadmeGui(play, page, btn)
 			"Discord voice and chat server:",
 			"https://discord.gg/RPCxzgt",
 			"Our forum:",
-			"explosivegaming.nl",
-			"Game speed:",
-			"0.6 = 36 UPS / FPS",
-			"Because of the lower UPS other things like walking and crafting are at a higher speed"}
+			"explosivegaming.nl"
+    }
 		frame.caption = "Server info"
 		for i, line in pairs(serverInfo) do
 			frame.flowContent.add{name=i, type="label", caption={"", line}}
@@ -504,7 +507,7 @@ function modifierGui(play, button)
   local function apply()
     play.print("apply")
     for i, modifier in pairs(forceModifiers) do 
-      local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("%d+"))
+      local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("[%d]+[.%d+]"))
       if number ~= nil then
         if number >= 0 and number < 50 and number ~= play.force[modifier] then
           play.force[modifier] = number
