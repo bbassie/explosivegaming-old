@@ -112,8 +112,8 @@ script.on_event(defines.events.on_gui_click, function(event)
     drawGetPlayerInventory(player, nil)
   elseif event.element.name == "btn_getPlayerInventory_close" then
     player.gui.center.getPlayerInventory.destroy()
-  elseif event.element.name == "btn_Spectate" then
-    spectate(player)
+  --elseif event.element.name == "btn_Spectate" then
+    --spectate(player)
   elseif event.element.name == "btn_Modifier" then
     modifierGui(player, false)
   elseif event.element.name == "btn_Modifier_apply" then
@@ -260,7 +260,7 @@ function drawToolbar(player)
     frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."}
     frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."}
     if player.admin == true then
-      frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
+      --frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
       frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
     end
 end
@@ -285,17 +285,17 @@ function playerListGuiSwitch(play)
   end
 end
 
-function spectate (player)
-  if player.character ~= nil then
-    spectating[player.index] = player.character
-    player.character = nil
-    player.print("You are spectating")
-  else
-    player.character = spectating[player.index]
-    spectating[player.index] = nil
-    player.print("You are not spectating")
-  end
-end
+--function spectate (player)
+--  if player.character ~= nil then
+--    spectating[player.index] = player.character
+--   player.character = nil
+--    player.print("You are spectating")
+--  else
+--    player.character = spectating[player.index]
+--    spectating[player.index] = nil
+--    player.print("You are not spectating")
+--  end
+--end
 ----------------------------------------------------------------------------------------
 ---------------------------Player List--------------------------------------------------
 ----------------------------------------------------------------------------------------
