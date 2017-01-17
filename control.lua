@@ -499,7 +499,7 @@ function modifierGui(play, button)
     for i, modifier in pairs(forceModifiers) do 
       local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("[%d]+[.%d+]"))
       if number ~= nil then
-        if number >= 0 and number < 50 and number ~= play.force[modifier] then
+        if number > 0 and number < 50 and number ~= play.force[modifier] then
           play.force[modifier] = number
           play.print(modifier .. " changed to number: " .. tostring(number))
         elseif number == play.force[modifier] then
