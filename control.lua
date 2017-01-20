@@ -2,13 +2,14 @@ entityCache = {}
 global.itemRotated = {}
 global.entityRemoved = {}
 global.spectating = {}
+global.warnings = {}
 
 global.ranks = {
-	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
-	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
-	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
-	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=233,g=0,b=233},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Spectate'}},
-	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme'}},
+	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','giveOwner'}},
+	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail'}},
+	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','Jail'}},
+	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','Spectate','Jail'}},
+	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info'}},
 	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
 	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=0,		rights={'Anti Grefer','readme'}}
 }
@@ -37,6 +38,8 @@ function clearElement (elementToClear)
   end
 end
 --------------------------------------------------------------------------------
+---------------------------Rank Functions--------------------------------------
+--------------------------------------------------------------------------------
 function getRank(player)
 	if player then
 		for _,rank in pairs(global.ranks) do
@@ -51,6 +54,7 @@ function setOwner(player)
 			if getRank(a).name == 'owner' then 
 				a.tag = defaultRank.tag
 				drawToolbar(a)
+				drawPlayerList()
 				break
 			end
 		end
@@ -61,6 +65,8 @@ function setOwner(player)
 			if player.connected then 
 				player.tag = global.ranks.owner.tag
 				drawToolbar(player)
+				drawPlayerList()
+				drawPlayerList()
 				break
 			end
 		end
@@ -198,6 +204,22 @@ script.on_event(defines.events.on_gui_click, function(event)
     player.gui.center.modifier.destroy()
   elseif event.element.name == "btn_toolbar_rocket_score" then
     satelliteGuiSwitch(player)
+  elseif event.element.name == "getInfoBtn" then
+    PlayerInfoGui(player, 1)
+  elseif event.element.name == "setInfoBtn" then
+    PlayerInfoGui(player, 2)
+  elseif event.element.name == "JailBtn" then
+    --PlayerInfoGui(player, btn)
+  elseif event.element.name == "addWarningsBtn" then
+    --PlayerInfoGui(player, btn)
+  elseif event.element.name == "removeWarningsBtn" then
+    --PlayerInfoGui(player, btn)
+  elseif event.element.name == "RankBtn" then
+    PlayerInfoGui(player, 3)
+  elseif event.element.name == "giveOwnerBtn" then
+    PlayerInfoGui(player, 4)
+  elseif event.element.name == "playerInfoBtn" then
+    PlayerInfoGui(player)
   end
 end)
 ----------------------------------------------------------------------------------------
@@ -338,6 +360,7 @@ function drawToolbar(player)
     if hasRight(player, 'readme') then frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."} end
     if hasRight(player, 'Spectate') then frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."} end
     if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
+	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end 
 end
 
 function satelliteGuiSwitch(play)
@@ -414,6 +437,124 @@ function drawPlayerTable(play, guiroot, tablename, isAdminonly)
     end
   end
 end
+----------------------------------------------------------------------------------------
+---------------------------Player Info Gui----------------------------------------------
+----------------------------------------------------------------------------------------
+function PlayerInfoGui(player, btn)
+	local function drawFrame(player)
+		local frame = player.gui.center.add{name= "PlayerInfo", type = "frame", direction = "vertical",caption='Player Info'}
+		local flowFind = frame.add{name='flowFind', type='flow',direction = "horizontal"}
+		flowFind.add{name='playerNameInput',type='textfield',text='Player Name'}
+		flowFind.add{name='getInfoBtn',type='button',caption='Select Player'}
+		if hasRight(player, 'setInfor') then flowFind.add{name='setInfoBtn',type='button',caption='Set Info'} end
+		local infoTable = frame.add{name='infoTable',type='table',colspan=3}
+		infoTable.add{name='Rank',type='label',caption='Rank'}
+		infoTable.add{name='Warnings',type='label',caption='Warnings Given'}
+		infoTable.add{name='Online',type='label',caption='Online Time (Hours)'}
+		infoTable.add{name='RankText',type='textfield'}
+		infoTable.add{name='WarningsText',type='textfield'}
+		infoTable.add{name='OnlineText',type='textfield'}
+		infoTable.add{name='Index',type='label',caption='Index'}
+		infoTable.add{name='WarningsAllowed',type='label',caption='Warnings Allowed'}
+		infoTable.add{name='AFK',type='label',caption='AFK Time (Minutes)'}
+		infoTable.add{name='IndexText',type='textfield'}
+		infoTable.add{name='WarningsAllowedText',type='textfield'}
+		infoTable.add{name='AFKText',type='textfield'}
+		if hasRight(player, 'Jail') then
+			local flowJail = frame.add{name='flowJail', type='flow',direction = "horizontal"}
+			flowJail.add{name='JailBtn',type='button',caption='Jail'}
+			flowJail.add{name='addWarningsBtn',type='button',caption='Give Warning'}
+			flowJail.add{name='removeWarningsBtn',type='button',caption='Remove Warning'}
+			for i, element in pairs(flowJail.children_names) do flowJail[element].style.minimal_width = 150 end
+		end
+		if hasRight(player, 'editRank') then
+			local flowRank = frame.add{name='flowRank', type='flow',direction = "horizontal"}
+			flowRank.add{name='NewRank',type='textfield',text='New Rank'}
+			flowRank.add{name='RankBtn',type='button',caption='Set New Rank'}
+			if hasRight(player, 'giveOwner') then flowRank.add{name='giveOwnerBtn',type='button',caption='Give Owner'} end
+			for i, element in pairs(flowRank.children_names) do if element ~= 'NewRank' then flowRank[element].style.minimal_width = 150 end end
+		end
+		for i, element in pairs(flowFind.children_names) do if element ~= 'playerNameInput' then flowFind[element].style.minimal_width = 150 end end
+	end
+	local function getInfo(player)
+		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
+		if getPlayer then
+			infoTable = player.gui.center.PlayerInfo.infoTable
+			infoTable.RankText.text = getRank(getPlayer).name
+			infoTable.WarningsText.text = global.warnings[getPlayer.index] or 'N/A'
+			infoTable.OnlineText.text = ticktohour(getPlayer.online_time)
+			infoTable.IndexText.text = getPlayer.index
+			infoTable.WarningsAllowedText.text = getRank(getPlayer).warningAllowed or 'N/A'
+			infoTable.AFKText.text = ticktominutes(getPlayer.afk_time)
+		else
+			player.print('Enter a valid player')
+		end
+	end
+	local function setInfo(player)
+		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
+		if getPlayer then
+			infoTable = player.gui.center.PlayerInfo.infoTable
+			if global.ranks[infoTable.RankText.text] then getPlayer.tag = global.ranks[infoTable.RankText.text].tag else player.print('Invalid Rank') end
+			if type(infoTable.WarningsText.text) == 'number' and tonumber(infoTable.WarningsText.text) < getRank(getPlayer).warningAllowed then 
+				global.warnings[getPlayer.index] = tonumber(infoTable.WarningsText.text) 
+			elseif infoTable.WarningsText.text ~= global.warnings[getPlayer.index] and infoTable.WarningsText.text ~= 'N/A' then
+				player.print('Invalid Number: must be less than Warnings Allowed') 
+			end
+			if type(infoTable.WarningsText.text) == 'number' and tonumber(infoTable.WarningsAllowedText.text) > 0 then 
+				global.ranks[infoTable.RankText.text].warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
+			elseif infoTable.WarningsText.text ~= getRank(getPlayer).warningAllowed and infoTable.WarningsText.text ~= 'N/A' then
+				player.print('Invalid Number: must be greater than 0') 
+			end
+			drawPlayerList()
+			drawToolbar(getPlayer)
+			if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
+		else
+			player.print('Enter a valid player')
+		end
+	end
+	local function setRank(player, owner)
+		if not owner then
+			getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
+			newRank = global.ranks[player.gui.center.PlayerInfo.flowRank.NewRank.text]
+			if newRank and getPlayer then
+				if newRank.id >= getRank(player).id and getRank(player).id < getRank(getPlayer).id then 
+					getPlayer.tag = newRank.tag 
+					drawPlayerList() 
+					drawToolbar(getPlayer) 
+					if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
+				else 
+					player.print('You are not a high enough rank') 
+				end
+			else
+				player.print('Enter a vaild rank/player')
+			end
+		else
+			getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
+			if getPlayer then
+				setOwner(getPlayer)
+				if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
+				drawToolbar(player)
+				if player.gui.center.PlayerInfo ~= nil then player.gui.center.PlayerInfo.destroy() end
+			else
+				player.print('Enter a vaild rank/player')
+			end
+		end
+	end
+	if btn == 1 then
+		getInfo(player)
+	elseif btn == 2 then
+		setInfo(player)
+	elseif btn == 3 then
+		setRank(player)
+	elseif btn == 4 then
+		setRank(player, true)
+    elseif player.gui.center.PlayerInfo ~= nil then
+      player.gui.center.PlayerInfo.destroy()
+    else
+      drawFrame(player)
+    end
+end
+
 ----------------------------------------------------------------------------------------
 ---------------------------Read Me Gui--------------------------------------------------
 ----------------------------------------------------------------------------------------
