@@ -5,13 +5,13 @@ global.spectating = {}
 global.warnings = {}
 
 global.ranks = {
-	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','giveOwner'}},
-	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail'}},
+	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','dev','giveOwner'}},
+	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','dev'}},
 	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','Jail'}},
 	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','Spectate','Jail'}},
 	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info'}},
 	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
-	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jail'}}
+	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jailed'}}
 }
 
 lotOfBelt = 5
@@ -30,9 +30,9 @@ function ticktominutes (tick)
     return minutes
 end
 
-function clearElement (elementToClear)
+function clearElement(elementToClear)
   if elementToClear ~= nil then
-    for i, element in pairs(elementToClear.children_names) do
+    for _, element in pairs(elementToClear.children_names) do
       elementToClear[element].destroy()
     end
   end
@@ -87,7 +87,7 @@ function effectRank()
 	for _,player in pairs(game.players) do
 		if player.connected then
 			playerRank = getRank(player)
-			if hasRight(player, 'jail') then player.character.active = false else player.character.active = true end
+			if hasRight(player, 'jailed') then player.character.active = false else player.character.active = true end
 		end
 	end
 end
@@ -235,6 +235,7 @@ end)
 script.on_event(defines.events.on_player_left_game, function(event)
   local player = game.players[event.player_index]
   drawPlayerList()
+  autoRank()
 end)
 ----------------------------------------------------------------------------------------
 ---------------------------Gui Events---------------------------------------------------
@@ -292,6 +293,14 @@ script.on_event(defines.events.on_gui_click, function(event)
     PlayerInfoGui(player, 4)
   elseif event.element.name == "playerInfoBtn" then
     PlayerInfoGui(player)
+  elseif event.element.name == "btn_dev_apply" then
+    devRank(player, 1)
+  elseif event.element.name == "btn_dev_close" then
+    devRank(player)
+  elseif event.element.name == "btn_dev_load" then
+    devRank(player, 2)
+  elseif event.element.name == "devBtn" then
+    devRank(player)
   end
 end)
 ----------------------------------------------------------------------------------------
@@ -436,7 +445,8 @@ function drawToolbar(player)
     if hasRight(player, 'readme') then frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."} end
     if hasRight(player, 'Spectate') then frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."} end
     if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
-	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end 
+	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end
+	if hasRight(player, 'dev') then frame.add{name="devBtn", type = "button", caption="Dev", tooltip="Edit basic rank data"} end 
 end
 
 function satelliteGuiSwitch(play)
@@ -479,7 +489,7 @@ function drawPlayerList()
 	local pList = a.gui.left.PlayerList
     clearElement(pList)
     for i, player in pairs(game.connected_players) do
-	  playerRank = getRank(player)
+	  local playerRank = getRank(player)
 	  pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " ", playerRank.playerListTag}}
 	  pList[player.name].style.font_color = playerRank.colour
     end
@@ -632,6 +642,83 @@ function PlayerInfoGui(player, btn)
       drawFrame(player)
     end
 end
+----------------------------------------------------------------------------------------
+---------------------------Dev Consol---------------------------------------------------
+----------------------------------------------------------------------------------------
+function devRank(play, button)
+	local inRanks = {
+		"id",
+		'name',
+		'tag',
+		'playerListTag',
+		'online',
+		'count',
+		'warningAllowed'
+	}
+	local function loadTable()
+		countRankMembers()
+		rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
+		if rank then
+			frame = play.gui.center.dev
+			clearElement(play.gui.center.dev.flowContent.devTable)
+			frame.flowContent.devTable.add{name="Tname", type="label", caption="name"}
+			frame.flowContent.devTable.add{name="Tinput", type="label", caption="input"}
+			for i, item in pairs(inRanks) do
+				frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
+				frame.flowContent.devTable.add{name=item .. "_input", type="textfield", caption="inputTextField", text=rank[item]}
+			end
+		else
+			play.print('Enter a valid rank')
+		end
+	end
+	local function apply()
+		local playerRanks = {}
+		for i,player in pairs(game.players) do
+			playerRanks[i] = getRank(player).name
+		end
+		if global.ranks[play.gui.center.dev.flowContent.rankInput.text] then
+			rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
+			for _,item in pairs(inRanks) do
+				local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
+				if change ~= nil then
+					if tonumber(string.match(change, '%d+')) == rank[item] or change == rank[item] then else
+						if item == 'id' or item == 'online' or item == 'count' or item == 'name' then play.print(item .. ' is readonly and did not change') else
+							rank[item] = tonumber(string.match(change, '%d+')) or change
+							play.print(item .. " changed to : " .. change)
+						end	
+					end
+				end	
+			end
+		else
+			loadTable()
+		end
+		for i,player in pairs(game.players) do
+			player.tag = global.ranks[playerRanks[i]].tag
+		end
+		drawPlayerList()
+	end
+	local function drawFrame ()
+		local frame = play.gui.center.add{name= "dev", type = "frame", caption="Dev Rank panel", direction = "vertical"}
+        frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+        frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+        frame.flowContent.add{name="devInfi", type="label", caption="Only use if you know what you are doing"}
+		frame.flowContent.add{name='rankInput',type='textfield', text='Rank'}
+        frame.flowContent.add{name="devTable", type="table", colspan=2}
+        frame.flowNavigation.add{name="btn_dev_apply", type = "button", caption="Apply", tooltip="Apply ."}
+        frame.flowNavigation.add{name="btn_dev_close", type = "button", caption="Close", tooltip="Close the dev panel."}
+		frame.flowNavigation.add{name="btn_dev_load", type = "button", caption="Load", tooltip="Load data"}
+	end
+	if button == 1 then
+		apply()
+	elseif button == 2 then
+		loadTable()
+	elseif play.gui.center.dev ~= nil then
+		play.gui.center.dev.destroy()
+    else
+      drawFrame()
+    end
+end
+
 
 ----------------------------------------------------------------------------------------
 ---------------------------Read Me Gui--------------------------------------------------
@@ -804,11 +891,9 @@ function modifierGui(play, button)
   end
   if button == true then
     apply()
+  elseif play.gui.center.modifier ~= nil then
+    play.gui.center.modifier.destroy()
   else
-    if play.gui.center.modifier ~= nil then
-      play.gui.center.modifier.destroy()
-    else
-      drawFrame()
-    end
+    drawFrame()
   end
 end
