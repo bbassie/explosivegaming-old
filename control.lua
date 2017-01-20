@@ -4,18 +4,17 @@ entityCache = {}
 global.spectating = {}
 
 ranks = {
-	owner={id=1,name='owner',tag='[Owner]',	rights={}},
-	dev={id=2,name='dev',tag='[Dev]',		rights={}},
-	admin={id=3,name='admin',tag='[Admin]',	rights={}},
-	mod={id=4,name='mod',tag='[Mod]',		rights={}},
-	reg={id=5,name='reg',tag='[Reg]',		rights={}},
-	guest={id=6,name='guest',tag='',		rights={'Anti Grefer'}},
-	jail={id=7,name='jail',tag='[Jailed]',	rights={'Anti Grefer'}},
+	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
+	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
+	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Spectate','Modifier'}},
+	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=233,g=0,b=233},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Spectate'}},
+	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme'}},
+	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
+	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=0,		rights={'Anti Grefer','readme'}}
 }
 
 lotOfBelt = 5
 lotOfRemoving = 5
-warningAllowed = 2
 timeForRegular = 180
 timeForMod = 600
 defaultRank = ranks['guest']
@@ -51,14 +50,17 @@ function setOwner(player)
 		for _,a in pairs(game.players) do
 			if getRank(a).name == 'owner' then 
 				a.tag = defaultRank.tag
+				drawToolbar(a)
 				break
 			end
 		end
-		player.tag = ranks.owner.tag	
+		player.tag = ranks.owner.tag
+		drawToolbar(player)
 	else
 		for i,player in pairs(game.players) do
 			if player.connected then 
-				player.tag = ranks.owner.tag 
+				player.tag = ranks.owner.tag
+				drawToolbar(player)
 				break
 			end
 		end
@@ -66,22 +68,26 @@ function setOwner(player)
 end
 
 function hasRight(rank, testRight) -- rank can be a player
-	if rank and right then
-		if ranks[rank] == nil then rank = getRank(rank) end
-		rights = rank.rights
+	if rank and testRight then
+		if ranks[rank] == nil then rights = getRank(rank).rights else rights = ranks[rank].rights end
 		for _,right in pairs(rights) do
-			if right == testRight then return true else return false end
+			if right == testRight then return true end
 		end
+		return false
 	end
 end
 
 function autoRank()
+	if ranks.owner.count == 0 then setOwner() end
 	for _,player in pairs(game.players) do
-		rankId = getRank(player).id
-		if rankID > 4 and ticktominutes(player.online_time) > timeForMod then player.tag = ranks.mod.tag
-		elseif rankID > 5 and ticktominutes(player.online_time) > timeForRegular then player.tag = ranks.reg.tag
+		rankID = getRank(player).id
+		if rankID > 3 and player.admin then player.tag = ranks.admin.tag
+		elseif rankID > 4 and ticktominutes(player.online_time) > timeForMod then player.tag = ranks.mod.tag drawToolbar(player)
+		elseif rankID > 5 and ticktominutes(player.online_time) > timeForRegular then player.tag = ranks.reg.tag drawToolbar(player)
 		end
 	end
+	countRankMembers()
+	drawPlayerList()
 end
 
 function callRank(msg, rank)
@@ -90,6 +96,18 @@ function callRank(msg, rank)
 	for _, player in pairs(game.players) do 
 		rankId = getRank(player).id
 		if rankID >= rank then player.print(msg) end
+	end
+end
+
+function countRankMembers()
+	for _,rank in pairs(ranks) do
+	rank.count = 0
+	rank.online = 0
+	end
+	for _,player in pairs(game.players) do
+		rank = getRank(player)
+		rank.count = rank.count +1
+		if player.connected then rank.online = rank.online +1 end
 	end
 end
 ----------------------------------------------------------------------------------------
@@ -134,6 +152,7 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   if not player.admin and ticktominutes(player.online_time) < 1 then
     ReadmeGui(player, "Rules")
   end
+  autoRank()
 end)
 
 script.on_event(defines.events.on_player_left_game, function(event)
@@ -314,15 +333,15 @@ end
 function drawToolbar(player)
     local frame = player.gui.top
     clearElement(frame)
-    if hasRight(player, 'toolbar_rocket_score') then frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."} end
-    if hasRight(player, 'toolbar_playerList') then frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."} end
+    if hasRight(player, 'basic toolbar') then frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."} end
+    if hasRight(player, 'basic toolbar') then frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."} end
     if hasRight(player, 'readme') then frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."} end
     if hasRight(player, 'Spectate') then frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."} end
     if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
 end
 
 function satelliteGuiSwitch(play)
-  if play.gui.left.rocket_score ~= nil then
+  if play.gui.left.rocket_score then
     if play.gui.left.rocket_score.style.visible == false then
       play.gui.left.rocket_score.style.visible = true
     else
@@ -332,7 +351,7 @@ function satelliteGuiSwitch(play)
 end
 
 function playerListGuiSwitch(play)
-  if play.gui.left.PlayerList ~= nil then
+  if play.gui.left.PlayerList then
     if play.gui.left.PlayerList.style.visible == false then
       play.gui.left.PlayerList.style.visible = true
     else
@@ -342,7 +361,7 @@ function playerListGuiSwitch(play)
 end
 
 function spectate (player)
-  if player.character ~= nil then
+  if player.character then
     spectating[player.index] = player.character
    player.character = nil
     player.print("You are spectating")
@@ -357,35 +376,13 @@ end
 ----------------------------------------------------------------------------------------
 function drawPlayerList()
   for i, a in pairs(game.players) do
-    if a.gui.left.PlayerList == nil then
-      a.gui.left.add{name= "PlayerList", type = "frame", direction = "vertical"}
-    end
+    if a.gui.left.PlayerList == nil then a.gui.left.add{name= "PlayerList", type = "frame", direction = "vertical"} end
 	local pList = a.gui.left.PlayerList
     clearElement(pList)
     for i, player in pairs(game.connected_players) do
-	  playerRank = getRank(player).name
-      if playerRank == 'owner' then
-		pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
-		pList[player.name].style.font_color = {r=170,g=0,b=0}
-	  elseif playerRank == 'dev' then
-		pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - DEV"}}
-		pList[player.name].style.font_color = {r=65,g=233,b=233}
-      elseif playerRank == 'admin' then
-		pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
-		pList[player.name].style.font_color = {r=233,g=63,b=233}
-	  elseif playerRank == 'mod' then
-		pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - MOD"}}
-		pList[player.name].style.font_color = {r=233,g=0,b=233}
-      elseif playerRank == 'reg' then
-        pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
-        pList[player.name].style.font_color = {r=24,g=172,b=188}
-	  elseif playerRank == 'guest' then
-        pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
-        pList[player.name].style.font_color = {r=255,g=159,b=27}
-	  elseif playerRank == 'jail' then
-		pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - Jailed"}}
-		pList[player.name].style.font_color = {r=175,g=175,b=175}
-      end
+	  playerRank = getRank(player)
+	  pList.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " ", playerRank.playerListTag}}
+	  pList[player.name].style.font_color = playerRank.colour
     end
   end
 end
