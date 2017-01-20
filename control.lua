@@ -11,7 +11,7 @@ global.ranks = {
 	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','Spectate','Jail'}},
 	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info'}},
 	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
-	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=0,		rights={'Anti Grefer','readme'}}
+	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jail'}}
 }
 
 lotOfBelt = 5
@@ -83,21 +83,32 @@ function hasRight(rank, testRight) -- rank can be a player
 	end
 end
 
+function effectRank()
+	for _,player in pairs(game.players) do
+		if player.connected then
+			playerRank = getRank(player)
+			if hasRight(player, 'jail') then player.character.active = false else player.character.active = true end
+		end
+	end
+end
+
 function autoRank()
 	if global.ranks.owner.count == 0 then setOwner() end
 	for _,player in pairs(game.players) do
 		rankID = getRank(player).id
-		if rankID > 3 and player.admin then player.tag = global.ranks.admin.tag
-		elseif rankID > 4 and ticktominutes(player.online_time) > timeForMod then player.tag = global.ranks.mod.tag drawToolbar(player)
-		elseif rankID > 5 and ticktominutes(player.online_time) > timeForRegular then player.tag = global.ranks.reg.tag drawToolbar(player)
+		if rankID > 3 and rankID < 7 and player.admin then player.tag = global.ranks.admin.tag
+		elseif rankID > 4 and rankID < 7 and ticktominutes(player.online_time) > timeForMod then player.tag = global.ranks.mod.tag drawToolbar(player)
+		elseif rankID > 5 and rankID < 7 and ticktominutes(player.online_time) > timeForRegular then player.tag = global.ranks.reg.tag drawToolbar(player)
+		elseif global.warnings[player.index] and getRank(player).warningAllowed and global.warnings[player.index] > getRank(player).warningAllowed then jail(player)
 		end
 	end
+	effectRank()
 	countRankMembers()
 	drawPlayerList()
 end
 
 function callRank(msg, rank)
-	if rank == nil then rank = 4 else rank = global.ranks[rank].id end -- default mod or higher
+	if rank == nil then rank = 4 else rank = rank.id end -- default mod or higher
 	for _, player in pairs(game.players) do 
 		rankID = getRank(player).id
 		if rankID <= rank then player.print(msg) end
@@ -115,6 +126,67 @@ function countRankMembers()
 		if player.connected then rank.online = rank.online +1 end
 	end
 end
+
+function editWarnings(player, change, byPlayer)
+	if player and change then
+		if byPlayer then
+			byPlayerName = byPlayer.name 
+			byPlayerRankId = getRank(byPlayer).id 
+			byPlayerRank = getRank(byPlayer) 
+		else
+			byPlayerName = 'server'
+			byPlayerRankId = 0
+			byPlayerRank = global.ranks.mod
+		end
+		if getRank(player).warningAllowed ~= nil then
+			if getRank(player).id > byPlayerRankId and getRank(player).warningAllowed then
+				global.warnings[player.index] = global.warnings[player.index] or 0
+				global.warnings[player.index] = global.warnings[player.index] + change
+				if change > 0 then
+					callRank(player.name .. ' has been given a warning by ' .. byPlayerName, byPlayerRank)
+					left = getRank(player).warningAllowed - global.warnings[player.index]
+					player.print('You have been given a warning by ' .. byPlayerName .. ' you have ' .. left .. ' left')
+				else
+					callRank(player.name .. ' has had a warning removed by ' .. byPlayerName, byPlayerRank)
+					left = getRank(player).warningAllowed - global.warnings[player.index]
+					player.print('You have had a warning removed by ' .. byPlayerName .. ' you have ' .. left .. ' left')
+				end
+				autoRank()
+			else
+				if byPlayerName ~= 'server' then byPlayer.print('Your rank is to low to give this player a warning') end
+			end
+		else
+			if byPlayerName ~= 'server' then byPlayer.print('This player can not be given warnings') end
+		end
+	else
+		if byPLayer then byPlayer.print('') end
+	end
+end
+
+function jail(player ,byPlayer)
+	if player then
+		if byPlayer then
+			byPlayerName = byPlayer.name 
+			byPlayerRankId = getRank(byPlayer).id 
+			byPlayerRank = getRank(byPlayer) 
+		else
+			byPlayerName = 'server'
+			byPlayerRankId = 0
+			byPlayerRank = global.ranks.mod
+		end
+		if getRank(player).id > byPlayerRankId then
+			player.tag = global.ranks.jail.tag
+			player.print('You have been jailed you can not do anything pleace leave or contact an admin you were jailed by - ' .. byPlayerName)
+			player.print('Ban appeles avablie at http://explosivegaming.nl/category/6/appeal')
+			global.warnings[player.index] = 0
+			callRank(player.name .. ' has been jailed by ' .. byPlayerName, byPlayerRank)
+			autoRank()
+			drawToolbar(player)
+		else
+			if byPlayerName ~= 'server' then byPlayer.print('Your rank is to low to Jail this player') end
+		end
+	end
+end	
 ----------------------------------------------------------------------------------------
 ---------------------------Player Events------------------------------------------------
 ----------------------------------------------------------------------------------------	
@@ -209,11 +281,11 @@ script.on_event(defines.events.on_gui_click, function(event)
   elseif event.element.name == "setInfoBtn" then
     PlayerInfoGui(player, 2)
   elseif event.element.name == "JailBtn" then
-    --PlayerInfoGui(player, btn)
+    jail(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text] ,player)
   elseif event.element.name == "addWarningsBtn" then
-    --PlayerInfoGui(player, btn)
+    editWarnings(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text], 1, player)
   elseif event.element.name == "removeWarningsBtn" then
-    --PlayerInfoGui(player, btn)
+    editWarnings(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text], -1, player)
   elseif event.element.name == "RankBtn" then
     PlayerInfoGui(player, 3)
   elseif event.element.name == "giveOwnerBtn" then
@@ -232,6 +304,7 @@ script.on_event(defines.events.on_marked_for_deconstruction, function(event)
       event.entity.cancel_deconstruction("player")
       player.print("You are not allowed to do this yet, play for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(player.online_time))) .. " minutes")
       callRank(player.name .. " tryed to deconstruced something")
+	  editWarnings(player, 1)
     end
 	end
 end)
@@ -245,6 +318,7 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
 			if global.itemRotated[event.player_index] >= lotOfBelt then
 				global.itemRotated[event.player_index]=0
 				callRank(player.name .. " has rotated a lot of belts")
+				editWarnings(player, 1)
 			end
 		end
 	end
@@ -257,6 +331,7 @@ script.on_event(defines.events.on_built_entity, function(event)
 			event.created_entity.destroy()
 			player.print("You are not allowed to do this yet, play for a bit longer. Try: " .. math.floor((timeForRegular - ticktominutes(player.online_time))) .. " minutes")
 			callRank(player.name .. " tryed to place concrete/stone with robots")
+			editWarnings(player, 1)
 		end
 	end
 end)
@@ -271,6 +346,7 @@ script.on_event(defines.events.on_player_mined_item, function(event)
 			if global.entityRemoved[event.player_index] >= lotOfRemoving then
 				global.entityRemoved[event.player_index]=0
 				callRank(player.name .. " has removed alot of stuff and got from it a " .. name)
+				editWarnings(player, 1)
 			end
 		end
 	end
@@ -500,11 +576,12 @@ function PlayerInfoGui(player, btn)
 			elseif infoTable.WarningsText.text ~= global.warnings[getPlayer.index] and infoTable.WarningsText.text ~= 'N/A' then
 				player.print('Invalid Number: must be less than Warnings Allowed') 
 			end
-			if type(infoTable.WarningsText.text) == 'number' and tonumber(infoTable.WarningsAllowedText.text) > 0 then 
+			if type(infoTable.WarningsAllowedText.text) == 'number' and tonumber(infoTable.WarningsAllowedText.text) > 0 then 
 				global.ranks[infoTable.RankText.text].warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
-			elseif infoTable.WarningsText.text ~= getRank(getPlayer).warningAllowed and infoTable.WarningsText.text ~= 'N/A' then
+			elseif infoTable.WarningsAllowedText.text ~= getRank(getPlayer).warningAllowed and infoTable.WarningsAllowedText.text ~= 'N/A' then
 				player.print('Invalid Number: must be greater than 0') 
 			end
+			effectRank()
 			drawPlayerList()
 			drawToolbar(getPlayer)
 			if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
@@ -519,6 +596,7 @@ function PlayerInfoGui(player, btn)
 			if newRank and getPlayer then
 				if newRank.id >= getRank(player).id and getRank(player).id < getRank(getPlayer).id then 
 					getPlayer.tag = newRank.tag 
+					effectRank()
 					drawPlayerList() 
 					drawToolbar(getPlayer) 
 					if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
