@@ -5,13 +5,14 @@ global.spectating = {}
 global.warnings = {}
 
 global.ranks = {
-	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
-	dev=	{id=2,name='devRanks',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
-	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','Jail'}},
-	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','Spectate','Jail'}},
-	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info'}},
+	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
+	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
+	manager={id=3,name='manager',tag='[Manager]',playerListTag='- Manager',	colour={r=150,g=63,b=67},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
+	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
+	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','death chest','Spectate','Jail'}},
+	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info','death chest'}},
 	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
-	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jailed'}}
+	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jailed','death chest'}}
 }
 
 lotOfBelt = 5
@@ -188,6 +189,41 @@ function jail(player ,byPlayer)
 	end
 end	
 ----------------------------------------------------------------------------------------
+---------------------------Other Functions----------------------------------------------
+----------------------------------------------------------------------------------------
+function deathChest(player)
+	local pos = game.surfaces[player.surface.name].find_non_colliding_position("steel-chest", player.position, 16, 1)
+	if game.surfaces[player.surface.name].can_place_entity({name = "steel-chest", position = pos, force = game.forces.neutral}) then
+		local tomb = game.surfaces[player.surface.name].create_entity({name = "steel-chest", position = pos, force = game.forces.neutral})
+		local tomb_inventory = tomb.get_inventory(defines.inventory.chest)
+		local count = 0
+		
+		for _, inventory_type in ipairs
+		{
+			defines.inventory.player_guns,
+			defines.inventory.player_tools,
+			defines.inventory.player_ammo,
+			defines.inventory.player_armor,
+			defines.inventory.player_quickbar,
+			defines.inventory.player_main,
+			defines.inventory.player_trash,
+			defines.inventory.player_vehicle
+		}
+		do 
+			local inventory = player.get_inventory(inventory_type)
+			if inventory ~= nil then
+				for item = 1, #inventory do
+					if inventory[item].valid_for_read then
+						count = count + 1
+						tomb_inventory[count].set_stack(inventory[item])
+					end
+				end
+			end
+		end
+		tomb.operable = false
+	end
+end
+----------------------------------------------------------------------------------------
 ---------------------------Player Events------------------------------------------------
 ----------------------------------------------------------------------------------------	
 script.on_event(defines.events.on_player_created, function(event)
@@ -201,6 +237,10 @@ script.on_event(defines.events.on_player_created, function(event)
   player.tag = defaultRank.tag
 end)
 
+script.on_event(defines.events.on_player_died, function(event)
+	local player = game.players[event.player_index]
+	if hasRight(player, 'death chest') then deathChest(player) end
+end)
 script.on_event(defines.events.on_player_respawned, function(event)
   local player = game.players[event.player_index]
   player.insert{name="pistol", count=1}
@@ -469,12 +509,20 @@ end
 function spectate(player)
   if player.character then
     global.spectating[player.index] = player.character
-   player.character = nil
+    player.character = nil
     player.print("You are spectating")
   else
-    player.character = global.spectating[player.index]
-    global.spectating[player.index] = nil
-    player.print("You are not spectating")
+	if global.spectating[player.index].valid then
+		player.character = global.spectating[player.index]
+		global.spectating[player.index] = nil
+		player.print("You are not spectating")
+	else
+		player.character = game.surfaces[player.surface.name].create_entity{name = "player", position = {0,0}, force = 'player'}
+		global.spectating[player.index] = nil
+		player.insert{name="pistol", count=1}
+		player.insert{name="firearm-magazine", count=10}
+		player.print("You were killed while spectating")
+	end
   end
 end
 ----------------------------------------------------------------------------------------
@@ -665,6 +713,7 @@ function devRank(play, button)
 		'Jail',
 		'devRanks',
 		'giveOwner',
+		'death chest',
 		'Anti Grefer',
 		'jailed'
 	}
