@@ -5,8 +5,8 @@ global.spectating = {}
 global.warnings = {}
 
 global.ranks = {
-	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','dev','giveOwner'}},
-	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfor','Jail','dev'}},
+	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
+	dev=	{id=2,name='devRanks',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
 	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','Spectate','Modifier','editRank','Jail'}},
 	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','Spectate','Jail'}},
 	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info'}},
@@ -199,11 +199,6 @@ script.on_event(defines.events.on_player_created, function(event)
   player.insert{name="stone-furnace", count = 1}
   player.force.chart(player.surface, {{player.position.x - 200, player.position.y - 200}, {player.position.x + 200, player.position.y + 200}})
   player.tag = defaultRank.tag
-  if (#game.players <= 1) then
-    game.show_message_dialog{text = {"msg-intro"}}
-  else
-    player.print({"msg-intro"})
-  end
 end)
 
 script.on_event(defines.events.on_player_respawned, function(event)
@@ -301,6 +296,8 @@ script.on_event(defines.events.on_gui_click, function(event)
     devRank(player, 2)
   elseif event.element.name == "devBtn" then
     devRank(player)
+  elseif event.element.name == "btn_dev_setRanks" then
+    devRank(player, 3)
   end
 end)
 ----------------------------------------------------------------------------------------
@@ -446,7 +443,7 @@ function drawToolbar(player)
     if hasRight(player, 'Spectate') then frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."} end
     if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
 	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end
-	if hasRight(player, 'dev') then frame.add{name="devBtn", type = "button", caption="Dev", tooltip="Edit basic rank data"} end 
+	if hasRight(player, 'devRanks') then frame.add{name="devBtn", type = "button", caption="Dev", tooltip="Edit basic rank data"} end 
 end
 
 function satelliteGuiSwitch(play)
@@ -532,7 +529,7 @@ function PlayerInfoGui(player, btn)
 		local flowFind = frame.add{name='flowFind', type='flow',direction = "horizontal"}
 		flowFind.add{name='playerNameInput',type='textfield',text='Player Name'}
 		flowFind.add{name='getInfoBtn',type='button',caption='Select Player'}
-		if hasRight(player, 'setInfor') then flowFind.add{name='setInfoBtn',type='button',caption='Set Info'} end
+		if hasRight(player, 'setInfo') then flowFind.add{name='setInfoBtn',type='button',caption='Set Info'} end
 		local infoTable = frame.add{name='infoTable',type='table',colspan=3}
 		infoTable.add{name='Rank',type='label',caption='Rank'}
 		infoTable.add{name='Warnings',type='label',caption='Warnings Given'}
@@ -653,7 +650,23 @@ function devRank(play, button)
 		'playerListTag',
 		'online',
 		'count',
-		'warningAllowed'
+		'warningAllowed',
+		'colour',
+		'rights'
+	}
+	local allRights = {
+		'basic toolbar',
+		'readme',
+		'Player Info',
+		'Spectate',
+		'Modifier',
+		'editRank',
+		'setInfo',
+		'Jail',
+		'devRanks',
+		'giveOwner',
+		'Anti Grefer',
+		'jailed'
 	}
 	local function loadTable()
 		countRankMembers()
@@ -664,54 +677,105 @@ function devRank(play, button)
 			frame.flowContent.devTable.add{name="Tname", type="label", caption="name"}
 			frame.flowContent.devTable.add{name="Tinput", type="label", caption="input"}
 			for i, item in pairs(inRanks) do
-				frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
-				frame.flowContent.devTable.add{name=item .. "_input", type="textfield", caption="inputTextField", text=rank[item]}
+				if item ~= 'colour' and item ~= 'rights' then
+					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
+					frame.flowContent.devTable.add{name=item .. "_input", type="textfield", caption="inputTextField", text=rank[item]}
+				elseif item == 'colour' then
+					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
+					frame.flowContent.devTable.add{name=item .. "_input", type="flow", direction = "horizontal"}
+					for colour,value in pairs(rank[item]) do
+						frame.flowContent.devTable.colour_input.add{name=colour, type="textfield", caption="inputTextField", text=value}
+						frame.flowContent.devTable.colour_input[colour].style.maximal_width = 40
+					end
+				else
+					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
+					frame.flowContent.devTable.add{name=item .. "_input", type="table", colspan=2}
+					for _,item in pairs(allRights) do
+						frame.flowContent.devTable.rights_input.add{name=item .. '_input', type="checkbox", caption=item, state = hasRight(rank, item)}
+					end
+				end
 			end
 		else
 			play.print('Enter a valid rank')
 		end
 	end
-	local function apply()
-		local playerRanks = {}
-		for i,player in pairs(game.players) do
-			playerRanks[i] = getRank(player).name
-		end
-		if global.ranks[play.gui.center.dev.flowContent.rankInput.text] then
-			rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
-			for _,item in pairs(inRanks) do
-				local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
-				if change ~= nil then
-					if tonumber(string.match(change, '%d+')) == rank[item] or change == rank[item] then else
-						if item == 'id' or item == 'online' or item == 'count' or item == 'name' then play.print(item .. ' is readonly and did not change') else
-							rank[item] = tonumber(string.match(change, '%d+')) or change
-							play.print(item .. " changed to : " .. change)
+	local function apply(newRights)
+		if play.gui.center.dev.flowContent.devTable.Tname then
+			if newRights == false then
+				local playerRanks = {}
+				for i,player in pairs(game.players) do
+					playerRanks[i] = getRank(player).name
+				end
+				rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
+				for _,item in pairs(inRanks) do
+					if item ~= 'colour' and item ~= 'rights' then
+						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
+						if change ~= nil then
+							if tonumber(string.match(change, '%d+')) == rank[item] or change == rank[item] then else
+								if item == 'id' or item == 'online' or item == 'count' or item == 'name' then play.print(item .. ' is readonly and did not change') else
+									rank[item] = tonumber(string.match(change, '%d+')) or change
+										play.print(item .. " changed to : " .. change)
+								end	
+							end
 						end	
+					elseif item == 'colour' then
+						local vaidColour = true
+						colour_input = play.gui.center.dev.flowContent.devTable.colour_input
+						change = {r=0,g=0,b=0}
+						for _,colour in pairs(colour_input.children_names) do
+							if type(tonumber(colour_input[colour].text)) == 'number' and tonumber(colour_input[colour].text) < 256 and tonumber(colour_input[colour].text) >= 0 then  
+								change[colour] = tonumber(colour_input[colour].text)
+							else 
+								play.print(colour .. ' is too big/small, range is 0-256')
+								play.print('Colour was invaild so did not change')
+								vaidColour = false
+								break
+							end
+						end
+						if change.r == rank[item].r and change.g == rank[item].g and change.b == rank[item].b then else
+							if vaidColour then
+								rank[item] = change
+								play.print('Colour has been changed')
+							else 
+								play.print('Colour was invaild so did not change')
+							end
+						end
 					end
-				end	
+				end
+				for i,player in pairs(game.players) do player.tag = global.ranks[playerRanks[i]].tag end
+				drawPlayerList()
+			else
+				rank.rights = {}
+				for index,item in pairs(allRights) do
+					right = frame.flowContent.devTable.rights_input[item .. '_input'].state
+					if right then rank.rights[index] = item end		
+				end
+				for _,player in pairs(game.players) do
+					if getRank(player).name == rank.name then drawToolbar(player) end
+				end
+				play.print('Rights updated')
 			end
-		else
-			loadTable()
 		end
-		for i,player in pairs(game.players) do
-			player.tag = global.ranks[playerRanks[i]].tag
-		end
-		drawPlayerList()
+		loadTable()
 	end
 	local function drawFrame ()
 		local frame = play.gui.center.add{name= "dev", type = "frame", caption="Dev Rank panel", direction = "vertical"}
-        frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+        frame.add{type = "flow", name= "flowContent", direction = "vertical"}
         frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
         frame.flowContent.add{name="devInfi", type="label", caption="Only use if you know what you are doing"}
 		frame.flowContent.add{name='rankInput',type='textfield', text='Rank'}
         frame.flowContent.add{name="devTable", type="table", colspan=2}
         frame.flowNavigation.add{name="btn_dev_apply", type = "button", caption="Apply", tooltip="Apply ."}
-        frame.flowNavigation.add{name="btn_dev_close", type = "button", caption="Close", tooltip="Close the dev panel."}
+		frame.flowNavigation.add{name="btn_dev_setRanks", type = "button", caption="Set Rights", tooltip="set the new rights"}
 		frame.flowNavigation.add{name="btn_dev_load", type = "button", caption="Load", tooltip="Load data"}
+        frame.flowNavigation.add{name="btn_dev_close", type = "button", caption="Close", tooltip="Close the dev panel."}
 	end
 	if button == 1 then
-		apply()
+		apply(false)
 	elseif button == 2 then
 		loadTable()
+	elseif button == 3 then
+		apply(true)
 	elseif play.gui.center.dev ~= nil then
 		play.gui.center.dev.destroy()
     else
