@@ -1,10 +1,12 @@
+script.on_load(function(evernt)
+globalVars = {}
 entityCache = {}
-global.itemRotated = {}
-global.entityRemoved = {}
-global.spectating = {}
-global.warnings = {}
+globalVars.itemRotated = {}
+globalVars.entityRemoved = {}
+globalVars.spectating = {}
+globalVars.warnings = {}
 
-global.ranks = {
+globalVars.ranks = {
 	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
 	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
 	manager={id=3,name='manager',tag='[Manager]',playerListTag='- Manager',	colour={r=150,g=63,b=67},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
@@ -17,9 +19,12 @@ global.ranks = {
 
 lotOfBelt = 5
 lotOfRemoving = 5
+lotOfRemoving = 5
 timeForRegular = 180
 timeForMod = 600
-defaultRank = global.ranks['guest']
+defaultRank = globalVars.ranks['guest']
+syncVar = nil
+end)
 --------------------------------------------------------------------------------
 function ticktohour (tick)
     local hour = tostring(math.floor(tick * (1 /(60*game.speed)) / 3600))
@@ -38,12 +43,27 @@ function clearElement(elementToClear)
     end
   end
 end
+
+function sync(save)
+	if game.surfaces[1].find_entities_filtered{name='radar', area = {{-5, -5}, {5, 5}}}[1] == nil then 
+		temp = game.surfaces[1].create_entity({name = "radar", position = {0,3}, force = game.forces.neutral})
+		temp.backer_name = table.tostring(globalVars)
+		temp.destructible=false
+		temp.minable=false
+		temp.operable=false
+	end
+	if save then
+		game.surfaces[1].find_entities_filtered{name='radar', area = {{-5, -5}, {5, 5}}}[1].backer_name = table.tostring(globalVars)
+	else
+		assert(loadstring('globalVars = ' .. game.surfaces[1].find_entities_filtered{name='radar', area = {{-5, -5}, {5, 5}}}[1].backer_name))()
+	end
+end
 --------------------------------------------------------------------------------
 ---------------------------Rank Functions--------------------------------------
 --------------------------------------------------------------------------------
 function getRank(player)
 	if player then
-		for _,rank in pairs(global.ranks) do
+		for _,rank in pairs(globalVars.ranks) do
 			if player.tag == rank.tag then return rank end
 		end
 	end
@@ -59,12 +79,12 @@ function setOwner(player)
 				break
 			end
 		end
-		player.tag = global.ranks.owner.tag
+		player.tag = globalVars.ranks.owner.tag
 		drawToolbar(player)
 	else
 		for i,player in pairs(game.players) do
 			if player.connected then 
-				player.tag = global.ranks.owner.tag
+				player.tag = globalVars.ranks.owner.tag
 				drawToolbar(player)
 				drawPlayerList()
 				drawPlayerList()
@@ -76,7 +96,7 @@ end
 
 function hasRight(rank, testRight) -- rank can be a player
 	if rank and testRight then
-		if global.ranks[rank] == nil then rights = getRank(rank).rights else rights = global.ranks[rank].rights end
+		if globalVars.ranks[rank] == nil then rights = getRank(rank).rights else rights = globalVars.ranks[rank].rights end
 		for _,right in pairs(rights) do
 			if right == testRight then return true end
 		end
@@ -94,13 +114,13 @@ function effectRank()
 end
 
 function autoRank()
-	if global.ranks.owner.count == 0 then setOwner() end
+	if globalVars.ranks.owner.count == 0 then setOwner() end
 	for _,player in pairs(game.players) do
 		rankID = getRank(player).id
-		if rankID > 3 and rankID < 7 and player.admin then player.tag = global.ranks.admin.tag
-		elseif rankID > 4 and rankID < 7 and ticktominutes(player.online_time) > timeForMod then player.tag = global.ranks.mod.tag drawToolbar(player)
-		elseif rankID > 5 and rankID < 7 and ticktominutes(player.online_time) > timeForRegular then player.tag = global.ranks.reg.tag drawToolbar(player)
-		elseif global.warnings[player.index] and getRank(player).warningAllowed and global.warnings[player.index] > getRank(player).warningAllowed then jail(player)
+		if rankID > 3 and rankID < 7 and player.admin then player.tag = globalVars.ranks.admin.tag
+		elseif rankID > 4 and rankID < 7 and ticktominutes(player.online_time) > timeForMod then player.tag = globalVars.ranks.mod.tag drawToolbar(player)
+		elseif rankID > 5 and rankID < 7 and ticktominutes(player.online_time) > timeForRegular then player.tag = globalVars.ranks.reg.tag drawToolbar(player)
+		elseif globalVars.warnings[player.index] and getRank(player).warningAllowed and globalVars.warnings[player.index] > getRank(player).warningAllowed then jail(player)
 		end
 	end
 	effectRank()
@@ -117,7 +137,7 @@ function callRank(msg, rank)
 end
 
 function countRankMembers()
-	for _,rank in pairs(global.ranks) do
+	for _,rank in pairs(globalVars.ranks) do
 	rank.count = 0
 	rank.online = 0
 	end
@@ -137,19 +157,19 @@ function editWarnings(player, change, byPlayer)
 		else
 			byPlayerName = 'server'
 			byPlayerRankId = 0
-			byPlayerRank = global.ranks.mod
+			byPlayerRank = globalVars.ranks.mod
 		end
 		if getRank(player).warningAllowed ~= nil then
 			if getRank(player).id > byPlayerRankId and getRank(player).warningAllowed then
-				global.warnings[player.index] = global.warnings[player.index] or 0
-				global.warnings[player.index] = global.warnings[player.index] + change
+				globalVars.warnings[player.index] = globalVars.warnings[player.index] or 0
+				globalVars.warnings[player.index] = globalVars.warnings[player.index] + change
 				if change > 0 then
 					callRank(player.name .. ' has been given a warning by ' .. byPlayerName, byPlayerRank)
-					left = getRank(player).warningAllowed - global.warnings[player.index]
+					left = getRank(player).warningAllowed - globalVars.warnings[player.index]
 					player.print('You have been given a warning by ' .. byPlayerName .. ' you have ' .. left .. ' left')
 				else
 					callRank(player.name .. ' has had a warning removed by ' .. byPlayerName, byPlayerRank)
-					left = getRank(player).warningAllowed - global.warnings[player.index]
+					left = getRank(player).warningAllowed - globalVars.warnings[player.index]
 					player.print('You have had a warning removed by ' .. byPlayerName .. ' you have ' .. left .. ' left')
 				end
 				autoRank()
@@ -173,13 +193,13 @@ function jail(player ,byPlayer)
 		else
 			byPlayerName = 'server'
 			byPlayerRankId = 0
-			byPlayerRank = global.ranks.mod
+			byPlayerRank = globalVars.ranks.mod
 		end
 		if getRank(player).id > byPlayerRankId then
-			player.tag = global.ranks.jail.tag
+			player.tag = globalVars.ranks.jail.tag
 			player.print('You have been jailed you can not do anything pleace leave or contact an admin you were jailed by - ' .. byPlayerName)
 			player.print('Ban appeles avablie at http://explosivegaming.nl/category/6/appeal')
-			global.warnings[player.index] = 0
+			globalVars.warnings[player.index] = 0
 			callRank(player.name .. ' has been jailed by ' .. byPlayerName, byPlayerRank)
 			autoRank()
 			drawToolbar(player)
@@ -223,10 +243,47 @@ function deathChest(player)
 		tomb.operable = false
 	end
 end
+
+function table.val_to_str ( v )
+  if "string" == type( v ) then
+    v = string.gsub( v, "\n", "\\n" )
+    if string.match( string.gsub(v,"[^'\"]",""), '^"+$' ) then
+      return "'" .. v .. "'"
+    end
+    return '"' .. string.gsub(v,'"', '\\"' ) .. '"'
+  else
+    return "table" == type( v ) and table.tostring( v ) or
+      tostring( v )
+  end
+end
+
+function table.key_to_str ( k )
+  if "string" == type( k ) and string.match( k, "^[_%a][_%a%d]*$" ) then
+    return k
+  else
+    return "[" .. table.val_to_str( k ) .. "]"
+  end
+end
+
+function table.tostring( tbl )
+  local result, done = {}, {}
+  for k, v in ipairs( tbl ) do
+    table.insert( result, table.val_to_str( v ) )
+    done[ k ] = true
+  end
+  for k, v in pairs( tbl ) do
+    if not done[ k ] then
+      table.insert( result,
+        table.key_to_str( k ) .. "=" .. table.val_to_str( v ) )
+    end
+  end
+  return "{" .. table.concat( result, "," ) .. "}"
+end
 ----------------------------------------------------------------------------------------
 ---------------------------Player Events------------------------------------------------
 ----------------------------------------------------------------------------------------	
 script.on_event(defines.events.on_player_created, function(event)
+  sync()
   local player = game.players[event.player_index]
   player.insert{name="iron-plate", count=8}
   player.insert{name="pistol", count=1}
@@ -248,6 +305,7 @@ script.on_event(defines.events.on_player_respawned, function(event)
 end)
 
 script.on_event(defines.events.on_player_joined_game, function(event)
+  sync()
   local player = game.players[event.player_index]
   player.print({"", "Welcome"})
   player.print({"", "Please join our discond and forum links are in server info under read me"})
@@ -277,6 +335,7 @@ end)
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
   local player = game.players[event.player_index]
+  sync()
   if event.element.name == "btn_readme" then
     ReadmeGui(player, "Rules", true)
   elseif event.element.name == "btn_readme_rules" then
@@ -339,6 +398,7 @@ script.on_event(defines.events.on_gui_click, function(event)
   elseif event.element.name == "btn_dev_setRanks" then
     devRank(player, 3)
   end
+  sync(true)
 end)
 ----------------------------------------------------------------------------------------
 ---------------------------Grefer Events------------------------------------------------
@@ -359,10 +419,10 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
 	local player = game.players[event.player_index]
 	if hasRight(player, 'Anti Grefer') then
 		if event.entity.name == "express-transport-belt" or event.entity.name == "fast-transport-belt" or event.entity.name == "transport-belt" then
-			global.itemRotated[event.player_index] = global.itemRotated[event.player_index] or 0
-			global.itemRotated[event.player_index] = global.itemRotated[event.player_index] +1
-			if global.itemRotated[event.player_index] >= lotOfBelt then
-				global.itemRotated[event.player_index]=0
+			globalVars.itemRotated[event.player_index] = globalVars.itemRotated[event.player_index] or 0
+			globalVars.itemRotated[event.player_index] = globalVars.itemRotated[event.player_index] +1
+			if globalVars.itemRotated[event.player_index] >= lotOfBelt then
+				globalVars.itemRotated[event.player_index]=0
 				callRank(player.name .. " has rotated a lot of belts")
 				editWarnings(player, 1)
 			end
@@ -387,10 +447,10 @@ script.on_event(defines.events.on_player_mined_item, function(event)
 	if not player.admin and ticktominutes(player.online_time) < 10 then
 		name = event.item_stack.name
 		if name ~= 'raw-wood' and name ~= 'coal' and name ~= 'copper-ore' and name ~= 'iron-ore' and name ~= 'stone' then
-			global.entityRemoved[event.player_index] = global.entityRemoved[event.player_index] or 0
-			global.entityRemoved[event.player_index] = global.entityRemoved[event.player_index] +1
-			if global.entityRemoved[event.player_index] >= lotOfRemoving then
-				global.entityRemoved[event.player_index]=0
+			globalVars.entityRemoved[event.player_index] = globalVars.entityRemoved[event.player_index] or 0
+			globalVars.entityRemoved[event.player_index] = globalVars.entityRemoved[event.player_index] +1
+			if globalVars.entityRemoved[event.player_index] >= lotOfRemoving then
+				globalVars.entityRemoved[event.player_index]=0
 				callRank(player.name .. " has removed alot of stuff and got from it a " .. name)
 				editWarnings(player, 1)
 			end
@@ -412,22 +472,22 @@ script.on_event(defines.events.on_rocket_launched, function(event)
     end
     return
   end
-  if not global.satellite_sent then
-    global.satellite_sent = {}
+  if not globalVars.satellite_sent then
+    globalVars.satellite_sent = {}
   end
-  if global.satellite_sent[force.name] then
-    global.satellite_sent[force.name] = global.satellite_sent[force.name] + 1   
+  if globalVars.satellite_sent[force.name] then
+    globalVars.satellite_sent[force.name] = globalVars.satellite_sent[force.name] + 1   
   else
     game.set_game_state{game_finished=true, player_won=true, can_continue=true}
-    global.satellite_sent[force.name] = 1
+    globalVars.satellite_sent[force.name] = 1
   end
   for index, player in pairs(force.players) do
     if player.gui.left.rocket_score then
-      player.gui.left.rocket_score.rocket_count.caption = tostring(global.satellite_sent[force.name])
+      player.gui.left.rocket_score.rocket_count.caption = tostring(globalVars.satellite_sent[force.name])
     else
       local frame = player.gui.left.add{name = "rocket_score", type = "frame", direction = "horizontal", caption={"score"}}
       frame.add{name="rocket_count_label", type = "label", caption={"", {"rockets-sent"}, ":"}}
-      frame.add{name="rocket_count", type = "label", caption=tostring(global.satellite_sent[force.name])}
+      frame.add{name="rocket_count", type = "label", caption=tostring(globalVars.satellite_sent[force.name])}
     end
   end 
 end)
@@ -508,17 +568,17 @@ end
 
 function spectate(player)
   if player.character then
-    global.spectating[player.index] = player.character
+    globalVars.spectating[player.index] = player.character
     player.character = nil
     player.print("You are spectating")
   else
-	if global.spectating[player.index].valid then
-		player.character = global.spectating[player.index]
-		global.spectating[player.index] = nil
+	if globalVars.spectating[player.index].valid then
+		player.character = globalVars.spectating[player.index]
+		globalVars.spectating[player.index] = nil
 		player.print("You are not spectating")
 	else
 		player.character = game.surfaces[player.surface.name].create_entity{name = "player", position = {0,0}, force = 'player'}
-		global.spectating[player.index] = nil
+		globalVars.spectating[player.index] = nil
 		player.insert{name="pistol", count=1}
 		player.insert{name="firearm-magazine", count=10}
 		player.print("You were killed while spectating")
@@ -612,7 +672,7 @@ function PlayerInfoGui(player, btn)
 		if getPlayer then
 			infoTable = player.gui.center.PlayerInfo.infoTable
 			infoTable.RankText.text = getRank(getPlayer).name
-			infoTable.WarningsText.text = global.warnings[getPlayer.index] or 'N/A'
+			infoTable.WarningsText.text = globalVars.warnings[getPlayer.index] or 'N/A'
 			infoTable.OnlineText.text = ticktohour(getPlayer.online_time)
 			infoTable.IndexText.text = getPlayer.index
 			infoTable.WarningsAllowedText.text = getRank(getPlayer).warningAllowed or 'N/A'
@@ -625,14 +685,14 @@ function PlayerInfoGui(player, btn)
 		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
 		if getPlayer then
 			infoTable = player.gui.center.PlayerInfo.infoTable
-			if global.ranks[infoTable.RankText.text] then getPlayer.tag = global.ranks[infoTable.RankText.text].tag else player.print('Invalid Rank') end
+			if globalVars.ranks[infoTable.RankText.text] then getPlayer.tag = globalVars.ranks[infoTable.RankText.text].tag else player.print('Invalid Rank') end
 			if type(infoTable.WarningsText.text) == 'number' and tonumber(infoTable.WarningsText.text) < getRank(getPlayer).warningAllowed then 
-				global.warnings[getPlayer.index] = tonumber(infoTable.WarningsText.text) 
-			elseif infoTable.WarningsText.text ~= global.warnings[getPlayer.index] and infoTable.WarningsText.text ~= 'N/A' then
+				globalVars.warnings[getPlayer.index] = tonumber(infoTable.WarningsText.text) 
+			elseif infoTable.WarningsText.text ~= globalVars.warnings[getPlayer.index] and infoTable.WarningsText.text ~= 'N/A' then
 				player.print('Invalid Number: must be less than Warnings Allowed') 
 			end
 			if type(infoTable.WarningsAllowedText.text) == 'number' and tonumber(infoTable.WarningsAllowedText.text) > 0 then 
-				global.ranks[infoTable.RankText.text].warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
+				globalVars.ranks[infoTable.RankText.text].warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
 			elseif infoTable.WarningsAllowedText.text ~= getRank(getPlayer).warningAllowed and infoTable.WarningsAllowedText.text ~= 'N/A' then
 				player.print('Invalid Number: must be greater than 0') 
 			end
@@ -647,7 +707,7 @@ function PlayerInfoGui(player, btn)
 	local function setRank(player, owner)
 		if not owner then
 			getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
-			newRank = global.ranks[player.gui.center.PlayerInfo.flowRank.NewRank.text]
+			newRank = globalVars.ranks[player.gui.center.PlayerInfo.flowRank.NewRank.text]
 			if newRank and getPlayer then
 				if newRank.id >= getRank(player).id and getRank(player).id < getRank(getPlayer).id then 
 					getPlayer.tag = newRank.tag 
@@ -719,7 +779,7 @@ function devRank(play, button)
 	}
 	local function loadTable()
 		countRankMembers()
-		rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
+		rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
 		if rank then
 			frame = play.gui.center.dev
 			clearElement(play.gui.center.dev.flowContent.devTable)
@@ -755,7 +815,7 @@ function devRank(play, button)
 				for i,player in pairs(game.players) do
 					playerRanks[i] = getRank(player).name
 				end
-				rank = global.ranks[play.gui.center.dev.flowContent.rankInput.text]
+				rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
 				for _,item in pairs(inRanks) do
 					if item ~= 'colour' and item ~= 'rights' then
 						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
@@ -791,7 +851,7 @@ function devRank(play, button)
 						end
 					end
 				end
-				for i,player in pairs(game.players) do player.tag = global.ranks[playerRanks[i]].tag end
+				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
 			else
 				rank.rights = {}
