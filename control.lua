@@ -809,13 +809,13 @@ function devRank(play, button)
 	end
 	local function apply(newRights)
 		if play.gui.center.dev.flowContent.devTable.Tname then
+			rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
+			if rank then
 			if newRights == false then
 				local playerRanks = {}
 				for i,player in pairs(game.players) do
 					playerRanks[i] = getRank(player).name
 				end
-				rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
-				if rank then
 				for _,item in pairs(inRanks) do
 					if item ~= 'colour' and item ~= 'rights' then
 						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
@@ -853,7 +853,6 @@ function devRank(play, button)
 				end
 				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
-				end
 			else
 				rank.rights = {}
 				for index,item in pairs(allRights) do
@@ -864,6 +863,7 @@ function devRank(play, button)
 					if getRank(player).name == rank.name then drawToolbar(player) end
 				end
 				play.print('Rights updated')
+			end
 			end
 		end
 		loadTable()
