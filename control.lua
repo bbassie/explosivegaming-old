@@ -335,7 +335,6 @@ end)
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
   local player = game.players[event.player_index]
-  sync()
   if event.element.name == "btn_readme" then
     ReadmeGui(player, "Rules", true)
   elseif event.element.name == "btn_readme_rules" then
@@ -816,6 +815,7 @@ function devRank(play, button)
 					playerRanks[i] = getRank(player).name
 				end
 				rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
+				if rank then
 				for _,item in pairs(inRanks) do
 					if item ~= 'colour' and item ~= 'rights' then
 						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
@@ -853,6 +853,7 @@ function devRank(play, button)
 				end
 				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
+				end
 			else
 				rank.rights = {}
 				for index,item in pairs(allRights) do
