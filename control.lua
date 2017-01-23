@@ -207,7 +207,7 @@ function jail(player ,byPlayer)
 			byPlayerRank = globalVars.ranks.mod
 		end
 		if getRank(player).id > byPlayerRankId then
-			player.tag = globalVars.ranks.jail.tag
+			player.tag = stringToRank('jail').tag
 			player.print('You have been jailed you can not do anything pleace leave or contact an admin you were jailed by - ' .. byPlayerName)
 			player.print('Ban appeles avablie at http://explosivegaming.nl/category/6/appeal')
 			globalVars.warnings[player.index] = 0
