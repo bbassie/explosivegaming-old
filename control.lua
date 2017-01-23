@@ -7,14 +7,14 @@ globalVars.spectating = {}
 globalVars.warnings = {}
 
 globalVars.ranks = {
-	owner=	{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
-	dev=	{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
-	manager={id=3,name='manager',tag='[Manager]',playerListTag='- Manager',	colour={r=150,g=63,b=67},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
-	admin=	{id=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
-	mod=	{id=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','death chest','Spectate','Jail'}},
-	reg=	{id=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info','death chest'}},
-	guest=	{id=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme'}},
-	jail=	{id=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jailed','death chest'}}
+{id=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks','giveOwner'}},
+{id=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','setInfo','Jail','devRanks'}},
+{id=3,name='manager',tag='[Manager]',playerListTag='- Manager',	colour={r=150,g=63,b=67},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
+{id=4,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail'}},
+{id=5,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		rights={'basic toolbar','readme','Player Info','death chest','Spectate','Jail','canAutoRank'}},
+{id=6,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
+{id=7,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		rights={'Anti Grefer','basic toolbar','readme','canAutoRank'}},
+{id=8,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	rights={'Anti Grefer','readme','jailed','death chest'}}
 }
 
 lotOfBelt = 5
@@ -22,7 +22,7 @@ lotOfRemoving = 5
 lotOfRemoving = 5
 timeForRegular = 180
 timeForMod = 600
-defaultRank = globalVars.ranks['guest']
+defaultRank = stringToRank('guest')
 syncVar = nil
 end)
 --------------------------------------------------------------------------------
@@ -56,6 +56,7 @@ function sync(save)
 		game.surfaces[1].find_entities_filtered{name='radar', area = {{-5, -5}, {5, 5}}}[1].backer_name = table.tostring(globalVars)
 	else
 		assert(loadstring('globalVars = ' .. game.surfaces[1].find_entities_filtered{name='radar', area = {{-5, -5}, {5, 5}}}[1].backer_name))()
+		defaultRank = stringToRank('guest')
 	end
 end
 --------------------------------------------------------------------------------
@@ -65,6 +66,14 @@ function getRank(player)
 	if player then
 		for _,rank in pairs(globalVars.ranks) do
 			if player.tag == rank.tag then return rank end
+		end
+	end
+end
+
+function stringToRank(string)
+	if type(string) == 'string' then
+		for _,rank in pairs(globalVars.ranks) do 
+			if rank.name == string then return rank end
 		end
 	end
 end
@@ -79,12 +88,12 @@ function setOwner(player)
 				break
 			end
 		end
-		player.tag = globalVars.ranks.owner.tag
+		player.tag = stringToRank('owner').tag
 		drawToolbar(player)
 	else
 		for i,player in pairs(game.players) do
 			if player.connected then 
-				player.tag = globalVars.ranks.owner.tag
+				player.tag = stringToRank('owner').tag
 				drawToolbar(player)
 				drawPlayerList()
 				drawPlayerList()
@@ -96,7 +105,7 @@ end
 
 function hasRight(rank, testRight) -- rank can be a player
 	if rank and testRight then
-		if globalVars.ranks[rank] == nil then rights = getRank(rank).rights else rights = globalVars.ranks[rank].rights end
+		if stringToRank(rank) == nil then rights = getRank(rank).rights else rights = rank.rights end
 		for _,right in pairs(rights) do
 			if right == testRight then return true end
 		end
@@ -114,14 +123,16 @@ function effectRank()
 end
 
 function autoRank()
-	if globalVars.ranks.owner.count == 0 then setOwner() end
+	if stringToRank('owner').count == 0 then setOwner() end
 	for _,player in pairs(game.players) do
-		rankID = getRank(player).id
-		if rankID > 3 and rankID < 7 and player.admin then player.tag = globalVars.ranks.admin.tag
-		elseif rankID > 4 and rankID < 7 and ticktominutes(player.online_time) > timeForMod then player.tag = globalVars.ranks.mod.tag drawToolbar(player)
-		elseif rankID > 5 and rankID < 7 and ticktominutes(player.online_time) > timeForRegular then player.tag = globalVars.ranks.reg.tag drawToolbar(player)
-		elseif globalVars.warnings[player.index] and getRank(player).warningAllowed and globalVars.warnings[player.index] > getRank(player).warningAllowed then jail(player)
+		if hasRight(player, 'canAutoRank') then
+			rankID = getRank(player).id
+			if player.admin then player.tag = stringToRank('admin').tag
+			elseif ticktominutes(player.online_time) > timeForMod then player.tag = stringToRank('mod').tag drawToolbar(player)
+			elseif ticktominutes(player.online_time) > timeForRegular then player.tag = stringToRank('reg').tag drawToolbar(player)
+			end
 		end
+		if globalVars.warnings[player.index] and getRank(player).warningAllowed and globalVars.warnings[player.index] > getRank(player).warningAllowed then jail(player) end
 	end
 	effectRank()
 	countRankMembers()
@@ -298,6 +309,7 @@ script.on_event(defines.events.on_player_died, function(event)
 	local player = game.players[event.player_index]
 	if hasRight(player, 'death chest') then deathChest(player) end
 end)
+
 script.on_event(defines.events.on_player_respawned, function(event)
   local player = game.players[event.player_index]
   player.insert{name="pistol", count=1}
@@ -328,7 +340,6 @@ end)
 script.on_event(defines.events.on_player_left_game, function(event)
   local player = game.players[event.player_index]
   drawPlayerList()
-  autoRank()
 end)
 ----------------------------------------------------------------------------------------
 ---------------------------Gui Events---------------------------------------------------
@@ -385,6 +396,8 @@ script.on_event(defines.events.on_gui_click, function(event)
   elseif event.element.name == "giveOwnerBtn" then
     PlayerInfoGui(player, 4)
   elseif event.element.name == "playerInfoBtn" then
+    PlayerInfoGui(player)
+  elseif event.element.name == "close_playerInfo" then
     PlayerInfoGui(player)
   elseif event.element.name == "btn_dev_apply" then
     devRank(player, 1)
@@ -665,6 +678,7 @@ function PlayerInfoGui(player, btn)
 			for i, element in pairs(flowRank.children_names) do if element ~= 'NewRank' then flowRank[element].style.minimal_width = 150 end end
 		end
 		for i, element in pairs(flowFind.children_names) do if element ~= 'playerNameInput' then flowFind[element].style.minimal_width = 150 end end
+		frame.add{name='close_playerInfo',type='button',caption='Close'}
 	end
 	local function getInfo(player)
 		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
@@ -684,14 +698,14 @@ function PlayerInfoGui(player, btn)
 		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
 		if getPlayer then
 			infoTable = player.gui.center.PlayerInfo.infoTable
-			if globalVars.ranks[infoTable.RankText.text] then getPlayer.tag = globalVars.ranks[infoTable.RankText.text].tag else player.print('Invalid Rank') end
+			if stringToRank(infoTable.RankText.text) then getPlayer.tag = stringToRank(infoTable.RankText.text).tag else player.print('Invalid Rank') end
 			if type(infoTable.WarningsText.text) == 'number' and tonumber(infoTable.WarningsText.text) < getRank(getPlayer).warningAllowed then 
 				globalVars.warnings[getPlayer.index] = tonumber(infoTable.WarningsText.text) 
 			elseif infoTable.WarningsText.text ~= globalVars.warnings[getPlayer.index] and infoTable.WarningsText.text ~= 'N/A' then
 				player.print('Invalid Number: must be less than Warnings Allowed') 
 			end
 			if type(infoTable.WarningsAllowedText.text) == 'number' and tonumber(infoTable.WarningsAllowedText.text) > 0 then 
-				globalVars.ranks[infoTable.RankText.text].warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
+				stringToRank(infoTable.RankText.text).warningAllowed = tonumber(infoTable.WarningsAllowedText.text) 
 			elseif infoTable.WarningsAllowedText.text ~= getRank(getPlayer).warningAllowed and infoTable.WarningsAllowedText.text ~= 'N/A' then
 				player.print('Invalid Number: must be greater than 0') 
 			end
@@ -706,7 +720,7 @@ function PlayerInfoGui(player, btn)
 	local function setRank(player, owner)
 		if not owner then
 			getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
-			newRank = globalVars.ranks[player.gui.center.PlayerInfo.flowRank.NewRank.text]
+			newRank = stringToRank(player.gui.center.PlayerInfo.flowRank.NewRank.text)
 			if newRank and getPlayer then
 				if newRank.id >= getRank(player).id and getRank(player).id < getRank(getPlayer).id then 
 					getPlayer.tag = newRank.tag 
@@ -773,12 +787,13 @@ function devRank(play, button)
 		'devRanks',
 		'giveOwner',
 		'death chest',
+		'canAutoRank',
 		'Anti Grefer',
 		'jailed'
 	}
 	local function loadTable()
 		countRankMembers()
-		rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
+		rank = stringToRank(play.gui.center.dev.flowContent.rankInput.text)
 		if rank then
 			frame = play.gui.center.dev
 			clearElement(play.gui.center.dev.flowContent.devTable)
@@ -809,21 +824,19 @@ function devRank(play, button)
 	end
 	local function apply(newRights)
 		if play.gui.center.dev.flowContent.devTable.Tname then
-			rank = globalVars.ranks[play.gui.center.dev.flowContent.rankInput.text]
+			rank = stringToRank(play.gui.center.dev.flowContent.rankInput.text)
 			if rank then
 			if newRights == false then
 				local playerRanks = {}
-				for i,player in pairs(game.players) do
-					playerRanks[i] = getRank(player).name
-				end
+				for i,player in pairs(game.players) do playerRanks[i] = getRank(player).name end
 				for _,item in pairs(inRanks) do
 					if item ~= 'colour' and item ~= 'rights' then
 						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
 						if change ~= nil then
 							if tonumber(string.match(change, '%d+')) == rank[item] or change == rank[item] then else
-								if item == 'id' or item == 'online' or item == 'count' or item == 'name' then play.print(item .. ' is readonly and did not change') else
+								if item == 'online' or item == 'count' or item == 'name' then play.print(item .. ' is readonly and did not change') else
 									rank[item] = tonumber(string.match(change, '%d+')) or change
-										play.print(item .. " changed to : " .. change)
+									play.print(item .. " changed to : " .. change)
 								end	
 							end
 						end	
@@ -851,7 +864,7 @@ function devRank(play, button)
 						end
 					end
 				end
-				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
+				for i,player in pairs(game.players) do player.tag = stringToRank(playerRanks[i]).tag end
 				drawPlayerList()
 			else
 				rank.rights = {}
@@ -859,9 +872,7 @@ function devRank(play, button)
 					right = frame.flowContent.devTable.rights_input[item .. '_input'].state
 					if right then rank.rights[index] = item end		
 				end
-				for _,player in pairs(game.players) do
-					if getRank(player).name == rank.name then drawToolbar(player) end
-				end
+				for _,player in pairs(game.players) do if getRank(player).name == rank.name then drawToolbar(player) end end
 				play.print('Rights updated')
 			end
 			end
@@ -1045,23 +1056,21 @@ function modifierGui(play, button)
     end
   end
   local function drawFrame ()
-    if play.admin == true or play.name == "test" then
-      local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
-            frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-            frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-            frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
-            frame.flowContent.add{name="modifierTable", type="table", colspan=3}
-            frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
-            frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
-            frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
-      for i, modifier in pairs(forceModifiers) do
-            frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
-            frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
-            frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
-      end
-            frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
-            frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
+    local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
+          frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+          frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+          frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
+          frame.flowContent.add{name="modifierTable", type="table", colspan=3}
+          frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
+          frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
+          frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
+    for i, modifier in pairs(forceModifiers) do
+          frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
+          frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
+          frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
     end
+          frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
+          frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
   end
   if button == true then
     apply()
