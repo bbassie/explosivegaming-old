@@ -9,13 +9,13 @@ globalVars.warnings = {}
 globalVars.avdToolbarPlayer = {}
 
 globalVars.ranks = {
-{realID=1,power=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail','advTool','giveOwner'}},
-{realID=2,power=2,name='dev',		tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail','advTool'}},
-{realID=3,power=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	condition='player.admin == true',					rights={'basic toolbar','readme','Player Info','death chest','Spectate','Modifier','editRank','Jail','advTool'}},
-{realID=4,power=4,name='mod',		tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		condition='ticktominutes(player.online_time) >= 2',	rights={'basic toolbar','readme','Player Info','death chest','Spectate','Jail','canAutoRank'}},
-{realID=5,power=5,name='reg',		tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		condition='ticktominutes(player.online_time) >= 1',	rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
+{realID=1,power=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageRanks','giveOwner'}},
+{realID=2,power=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageRanks'}},
+{realID=3,power=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	condition='player.admin == true',					rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights'}},
+{realID=4,power=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		condition='ticktominutes(player.online_time) >= 2',	rights={'basic toolbar','readme','Player Info','death chest','Jail','canAutoRank'}},
+{realID=5,power=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		condition='ticktominutes(player.online_time) >= 1',	rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
 {realID=6,power=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		condition='default',								rights={'Anti Grefer','basic toolbar','readme','canAutoRank'}},
-{realID=7,power=7,name='jail',		tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'Anti Grefer','readme','jailed','death chest'}}
+{realID=7,power=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'Anti Grefer','readme','jailed','death chest'}}
 }
 
 globalVars.defaultRank = stringToRank('guest')
@@ -216,7 +216,7 @@ function jail(player ,byPlayer)
 			byPlayerRank = globalVars.ranks.mod
 		end
 		if getRank(player).power > byPlayerRankId then
-			player.tag = globalVars.ranks[8].tag
+			player.tag = globalVars.ranks[7].tag
 			player.print('You have been jailed you can not do anything pleace leave or contact an admin you were jailed by - ' .. byPlayerName)
 			player.print('Ban appeles avablie at http://explosivegaming.nl/category/6/appeal')
 			globalVars.warnings[player.index] = 0
@@ -437,6 +437,22 @@ script.on_event(defines.events.on_gui_click, function(event)
     devRank(player, 3)
   elseif event.element.name == 'advTool' then
 	advToolbarSwitch(player)
+  elseif event.element.name == 'btn_playerTable_loadTable' then
+	playerTableGui(player, true)
+  elseif event.element.name == 'btn_playerTable_close' then
+	playerTableGui(player)
+  elseif event.element.name == 'btn_playerTable' then
+	playerTableGui(player)
+  elseif event.element.name == 'btn_rankRights_close' then
+	rankRightsGui(player)	
+  elseif event.element.name == 'btn_rankRights_setRights' then
+	rankRightsGui(player, true)	
+  elseif event.element.name == 'btn_rankRights' then
+	rankRightsGui(player)
+  elseif event.element.name == 'btn_addRemoveRanksGui_close' then
+	addRemoveRanksGui(player)
+  elseif event.element.name == 'btn_addRemoveRanksGui' then
+	addRemoveRanksGui(player)
   end
   reLoadFunctions(player)
 end)
@@ -591,8 +607,11 @@ function drawToolbar(player)
 		frame.add{name='Adv_toolbar',type='flow'}
 		if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
 		if hasRight(player, 'advTool') then frame.add{name="dev", type = "button", caption="Dev"} end
+		if hasRight(player, 'playerTable') then frame.add{name="btn_playerTable", type = "button", caption="Player Table"} end
+		if hasRight(player, 'editRights') then frame.add{name="btn_rankRights", type = "button", caption="Edit Rights"} end
+		if hasRight(player, 'manageRanks') then frame.add{name="btn_addRemoveRanksGui", type = "button", caption="Manage Ranks"} end
 	end
-end
+end 
 
 function advToolbarSwitch(player)
 	if globalVars.avdToolbarPlayer[player.index] == nil then globalVars.avdToolbarPlayer[player.index] = false end
@@ -615,21 +634,15 @@ end
 
 function spectate(player)
   if player.character then
+    player.character.destructible=falsew
     globalVars.spectating[player.index] = player.character
     player.character = nil
     player.print("You are spectating")
   else
-	if globalVars.spectating[player.index].valid then
-		player.character = globalVars.spectating[player.index]
-		globalVars.spectating[player.index] = nil
-		player.print("You are not spectating")
-	else
-		player.character = game.surfaces[player.surface.name].create_entity{name = "player", position = {0,0}, force = 'player'}
-		globalVars.spectating[player.index] = nil
-		player.insert{name="pistol", count=1}
-		player.insert{name="firearm-magazine", count=10}
-		player.print("You were killed while spectating")
-	end
+	player.character.destructible=true
+	player.character = globalVars.spectating[player.index]
+	globalVars.spectating[player.index] = nil
+	player.print("You are not spectating")
   end
 end
 ----------------------------------------------------------------------------------------
@@ -648,31 +661,34 @@ function drawPlayerList()
   end
 end
 
-function drawPlayerTable(play, guiroot, tablename, filter)
+function drawPlayerTable(play, guiroot, tablename, filters)
   guiroot.add{name=tablename, type="table", colspan=5}
   guiroot[tablename].style.minimal_width = 500
   guiroot[tablename].style.maximal_width = 500
-  guiroot[tablename].add{name="id", type="label", caption="id"}
-  guiroot[tablename].add{name="name", type="label", caption="name"}
-  guiroot[tablename].add{name="status", type="label", caption="status"}
-  guiroot[tablename].add{name="hours", type="label", caption="Hours"}
-  guiroot[tablename].add{name="rank", type="label", caption="Rank"}
+  guiroot[tablename].add{name="id", type="label", caption="Id		"}
+  guiroot[tablename].add{name="name", type="label", caption="Name		"}
+  guiroot[tablename].add{name="status", type="label", caption="Status		"}
+  guiroot[tablename].add{name="online_time", type="label", caption="Online Time	"}
+  guiroot[tablename].add{name="rank", type="label", caption="Rank	"}
   for i, player in pairs(game.players) do
-    if filter == 'admin' and player.admin == false then
-    elseif stringToRank(filter) and stringToRank(filter).power ~= getRank(player).power then
-	elseif filter == 'online' and playerconnected == false then
-	elseif filter == 'offline' and playerconnected == true then
-	elseif tonumber(filter) and tonumber(filter) > ticktohour(player.online_time) then
-    else
+    local addPlayer = true
+    for _,filter in pairs(filters) do
+      if filter == 'admin' and player.admin == false then addPlayer = false break
+      elseif stringToRank(filter) and stringToRank(filter).power ~= getRank(player).power then addPlayer = false break
+	  elseif filter == 'online' and player.connected == false then addPlayer = false break
+	  elseif tonumber(filter) and tonumber(filter) > ticktominutes(player.online_time) then addPlayer = false break
+	  end
+	end
+    if addPlayer == true then
       if guiroot[tablename][player.name] == nil then
         guiroot[tablename].add{name=i .. "id", type="label", caption=i}
         guiroot[tablename].add{name=player.name, type="label", caption=player.name}
-        if playerconnected == true then
+        if player.connected == true then
           guiroot[tablename].add{name=player.name .. "Status", type="label", caption="ONLINE"}
         else
           guiroot[tablename].add{name=player.name .. "Status", type="label", caption="OFFLINE"}
         end
-        guiroot[tablename].add{name=player.name .. "Hours", type="label", caption=ticktohour(player.online_time)}
+        guiroot[tablename].add{name=player.name .. "Online_Time", type="label", caption=(ticktohour(player.online_time)..'H '..(ticktominutes(player.online_time)-60*ticktohour(player.online_time))..'M')}
         guiroot[tablename].add{name=player.name .. "Rank", type="label", caption=getRank(player).name}
       end
     end
@@ -775,7 +791,7 @@ function PlayerInfoGui(player, btn)
     end
 end
 ----------------------------------------------------------------------------------------
----------------------------Dev Consol---------------------------------------------------
+---------------------------Mange Tags---------------------------------------------------
 ----------------------------------------------------------------------------------------
 function devRank(play, button)
 	local inRanks = {
@@ -800,6 +816,8 @@ function devRank(play, button)
 		'advTool',
 		'giveOwner',
 		'death chest',
+		'playerTable',
+		'editRights',
 		'canAutoRank',
 		'Anti Grefer',
 		'jailed'
@@ -988,7 +1006,7 @@ function ReadmeGui(play, page, btn)
 		for i, line in pairs(admins) do
 			frame.flowContent.add{name=i, type="label", caption={"", line}}
 		end
-		drawPlayerTable(play, frame.flowContent, "AdminTable", 'admin')
+		drawPlayerTable(play, frame.flowContent, "AdminTable", {'admin'})
 	end
 	local function drawPlayers(play, frame, players)
 		local players = {
@@ -998,7 +1016,7 @@ function ReadmeGui(play, page, btn)
 		for i, line in pairs(players) do
 			frame.flowContent.add{name=i, type="label", caption={"", line}}
 		end
-		drawPlayerTable(play, frame.flowContent, "PlayerTable", false)
+		drawPlayerTable(play, frame.flowContent, "PlayerTable", {})
 	end
   if play.gui.center.README ~= nil then
     if page == "Rules" then
@@ -1090,4 +1108,177 @@ function modifierGui(play, button)
   else
     drawFrame()
   end
+end
+----------------------------------------------------------------------------------------
+---------------------------Player List With Filters-------------------------------------
+----------------------------------------------------------------------------------------
+function playerTableGui(player, button)
+	local function drawFrame()
+		frame = player.gui.center.playerTable or player.gui.center.add{name='playerTable',type='frame',caption='Player List',direction='vertical'}
+		frame.add{name='flow',type='flow',direction='horizontal'}
+		frame.flow.add{name='btn_playerTable_loadTable',type='button',caption='Get Players',tooltip='Press to get player table with filters'}
+		frame.flow.add{name='btn_playerTable_close',type='button',caption='Close'}
+		frame.add{name='filterTable',type='table',colspan=3}
+		frame.filterTable.add{name='status_label',type='label',caption='Online?'}
+		frame.filterTable.add{name='hours_label',type='label',caption='Online Time (minutes)'}
+		frame.filterTable.add{name='rank_label',type='label',caption='Rank'}
+		frame.filterTable.add{name='status_input',type='textfield'}
+		frame.filterTable.add{name='hours_input',type='textfield'}
+		frame.filterTable.add{name='rank_input',type='textfield'}
+	end
+	local function loadTable()
+		local filters = {}
+		status_input = player.gui.center.playerTable.filterTable.status_input.text
+		hours_input =  player.gui.center.playerTable.filterTable.hours_input.text
+		rank_input =  player.gui.center.playerTable.filterTable.rank_input.text
+		if status_input == 'yes' or status_input == 'online' then filters[1] = 'online' end
+		if tonumber(hours_input) and tonumber(hours_input) > 0 then filters[2] = tonumber(hours_input) end
+		if stringToRank(rank_input) then filters[3] = rank_input end
+		if player.gui.center.playerTable.filteredList then player.gui.center.playerTable.filteredList.destroy() end
+		drawPlayerTable(player, player.gui.center.playerTable, 'filteredList', filters)
+	end
+	if button then
+		loadTable()
+	elseif player.gui.center.playerTable ~= nil then
+		player.gui.center.playerTable.destroy()
+    else
+      drawFrame()
+    end
+end
+----------------------------------------------------------------------------------------
+---------------------------Mange Rights-------------------------------------------------
+----------------------------------------------------------------------------------------
+function rankRightsGui(player, button)
+	local allRights = {
+		'basic toolbar',
+		'readme',
+		'death chest',
+		'Player Info',
+		'Spectate',
+		'Jail',
+		'Modifier',
+		'editRank',
+		'advTool',
+		'playerTable',
+		'editRights',
+		'manageRanks',
+		'giveOwner',
+		'canAutoRank',
+		'Anti Grefer',
+		'jailed'
+	}
+	local function loadTable()
+		local table = player.gui.center.rankRights.rightsTable
+		clearElement(table)
+		table.add{name='id_label',type='label',caption='Id'}
+		table.add{name='power_label',type='label',caption='Power'}
+		table.add{name='name_label',type='label',caption='Name'}
+		table.add{name='Rights_label',type='label',caption='Rights'}
+		for _,rank in pairs(globalVars.ranks) do
+			if getRank(player).power <= rank.power then
+				table.add{name=rank.name..'_id',type='label',caption=rank.realID}
+				table.add{name=rank.name..'_power',type='label',caption=rank.power}
+				table.add{name=rank.name..'_name',type='label',caption=rank.name}
+				table.add{name=rank.name..'_flowRights',type='flow',direction='horizontal'}
+				for _,right in pairs(allRights) do
+					table[rank.name..'_flowRights'].add{name=rank.name..right..'_input',type="checkbox", caption=right, state = hasRight(rank, right)}
+				end
+			end
+		end
+	end
+	local function drawFrame()
+		frame = player.gui.center.rankRights or player.gui.center.add{name='rankRights',type='frame',caption='Player List',direction='vertical'}
+		frame.add{name='rightsTable',type='table',colspan=4}
+		frame.add{name='flow',type='flow',direction='horizontal'}
+		frame.flow.add{name='btn_rankRights_close',type='button',caption='Close'}
+		frame.flow.add{name='btn_rankRights_setRights',type='button',caption='Apply Rights'}
+		loadTable()
+	end
+	local function applyRights()
+		for _,rank in pairs(globalVars.ranks) do
+			if getRank(player).power <= rank.power then
+				rank.rights = {}
+				for index,item in pairs(allRights) do
+					right = player.gui.center.rankRights.rightsTable[rank.name..'_flowRights'][rank.name..item..'_input'].state
+					if right then rank.rights[index] = item end		
+				end
+				for _,player in pairs(game.players) do if getRank(player).name == rank.name then drawToolbar(player) end end
+			end
+		end
+		player.print('Rights updated')
+	end
+	if button then
+		applyRights()
+	elseif player.gui.center.rankRights ~= nil then
+		player.gui.center.rankRights.destroy()
+    else
+      drawFrame()
+    end
+end
+----------------------------------------------------------------------------------------
+---------------------------Mange Ranks--------------------------------------------------
+----------------------------------------------------------------------------------------
+function addRemoveRanksGui(player, button, rank)
+	local powerLevels = {}
+	for id,rank in pairs(globalVars.ranks) do powerLevels[id] = rank.power end
+	local function drawTable()
+		for id,rank in pairs(globalVars.ranks) do powerLevels[id] = rank.power end
+		local table = player.gui.center.rankGui.rankTable
+		table.add{name='id_label',type='label',caption='ID'}
+		table.add{name='name_label',type='label',caption='Name'}
+		table.add{name='power_label',type='label',caption='Power'}
+		table.add{name='condition_label',type='label',caption='AutoRank Condition'}
+		table.add{name='manage_label',type='label',caption='Manage'}
+		for id,rank in pairs(globalVars.ranks) do
+			table.add{name=rank.name..'_id',type='label',caption=rank.realID}
+			table.add{name=rank.name..'_name',type='label',caption=rank.name}
+			table.add{name=rank.name..'_power',type='label',caption=rank.power}
+			table.add{name=rank.name..'_condition',type='textfield',text=rank.condition}
+			table.add{name=rank.name..'_flow',type='label',direction='horizontal'}
+			table[rank.name..'_flow'].add{name=rank.realID..'_RankUP',type='checkbox',caption='test',state=false}
+			table[rank.name..'_flow'].add{name=rank.realID..'_RankDown',type='checkbox',caption='test',state=false}
+			table[rank.name..'_flow'].add{name=rank.realID..'_RankRemove',type='checkbox',caption='test',state=false}
+		end
+	end
+	local function drawFrame()
+		frame = player.gui.center.rankGui or player.gui.center.add{name='rankGui',type='frame',caption='Ranks',direction='vertical'}
+		frame.add{name='rankTable',type='table',colspan=5}
+		frame.add{name='flow',type='flow',direction='horizontal'}
+		frame.flow.add{name='btn_addRemoveRanksGui_AddRank',type='button',caption='Add Rank'}
+		frame.flow.add{name='btn_addRemoveRanksGui_close',type='button',caption='Close'}
+		drawTable()
+	end
+	local function moveUP()
+	
+	end
+	local function moveDown()
+	
+	end
+	local function removeRank()
+	
+	end
+	local function addRank()
+	
+	end
+	local function apply()
+	
+	end
+	if button == 1 then
+		moveUP()
+	elseif button == 2 then
+		moveDown()
+	elseif button == 3 then
+		removeRank()
+	elseif button == 4 then
+		addRank()
+	elseif button == 5 then
+		apply()
+	elseif player.gui.center.rankGui ~= nil then
+		player.gui.center.rankGui.destroy()
+    else
+      drawFrame()
+    end
+	
+	
+
 end
