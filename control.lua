@@ -9,8 +9,8 @@ globalVars.warnings = {}
 globalVars.avdToolbarPlayer = {}
 
 globalVars.ranks = {
-{realID=1,power=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageRanks','giveOwner'}},
-{realID=2,power=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageRanks'}},
+{realID=1,power=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageTags','manageRanks','giveOwner'}},
+{realID=2,power=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageTags','manageRanks'}},
 {realID=3,power=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	condition='player.admin == true',					rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights'}},
 {realID=4,power=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		condition='ticktominutes(player.online_time) >= 2',	rights={'basic toolbar','readme','Player Info','death chest','Jail','canAutoRank'}},
 {realID=5,power=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		condition='ticktominutes(player.online_time) >= 1',	rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
@@ -112,6 +112,7 @@ end
 
 function hasRight(rank, testRight) -- rank can be a player
 	if rank and testRight then
+		game.players[2].print(rank.name)
 		if stringToRank(rank) == nil then rights = getRank(rank).rights else rights = rank.rights end
 		for _,right in pairs(rights) do
 			if right == testRight then return true end
@@ -409,8 +410,6 @@ script.on_event(defines.events.on_gui_click, function(event)
     satelliteGuiSwitch(player)
   elseif event.element.name == "getInfoBtn" then
     PlayerInfoGui(player, 1)
-  elseif event.element.name == "setInfoBtn" then
-    PlayerInfoGui(player, 2)
   elseif event.element.name == "JailBtn" then
     jail(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text] ,player)
   elseif event.element.name == "addWarningsBtn" then
@@ -425,16 +424,14 @@ script.on_event(defines.events.on_gui_click, function(event)
     PlayerInfoGui(player)
   elseif event.element.name == "close_playerInfo" then
     PlayerInfoGui(player)
-  elseif event.element.name == "btn_dev_apply" then
-    devRank(player, 1)
-  elseif event.element.name == "btn_dev_close" then
-    devRank(player)
-  elseif event.element.name == "btn_dev_load" then
-    devRank(player, 2)
-  elseif event.element.name == "dev" then
-    devRank(player)
-  elseif event.element.name == "btn_dev_setRanks" then
-    devRank(player, 3)
+  elseif event.element.name == "btn_manageTags_apply" then
+    manageTagsGui(player, 1)
+  elseif event.element.name == "btn_manageTags_close" then
+    manageTagsGui(player)
+  elseif event.element.name == "btn_manageTags_load" then
+    manageTagsGui(player, 2)
+  elseif event.element.name == "btn_manageTags" then
+    manageTagsGui(player)
   elseif event.element.name == 'advTool' then
 	advToolbarSwitch(player)
   elseif event.element.name == 'btn_playerTable_loadTable' then
@@ -453,9 +450,13 @@ script.on_event(defines.events.on_gui_click, function(event)
 	addRemoveRanksGui(player)
   elseif event.element.name == 'btn_addRemoveRanksGui' then
 	addRemoveRanksGui(player)
+  elseif event.element.name == 'btn_addRemoveRanksGui_Apply' then
+	addRemoveRanksGui(player, 2)
+  elseif event.element.name == 'btn_addRemoveRanksGui_AddRank' then
+	addRemoveRanksGui(player, 1)
   end
   reLoadFunctions(player)
-end)
+end)  
 ----------------------------------------------------------------------------------------
 ---------------------------Grefer Events------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -606,7 +607,7 @@ function drawToolbar(player)
 	if globalVars.avdToolbarPlayer[player.index] then
 		frame.add{name='Adv_toolbar',type='flow'}
 		if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
-		if hasRight(player, 'advTool') then frame.add{name="dev", type = "button", caption="Dev"} end
+		if hasRight(player, 'manageTags') then frame.add{name="btn_manageTags", type = "button", caption="Manage Tags"} end
 		if hasRight(player, 'playerTable') then frame.add{name="btn_playerTable", type = "button", caption="Player Table"} end
 		if hasRight(player, 'editRights') then frame.add{name="btn_rankRights", type = "button", caption="Edit Rights"} end
 		if hasRight(player, 'manageRanks') then frame.add{name="btn_addRemoveRanksGui", type = "button", caption="Manage Ranks"} end
@@ -778,8 +779,6 @@ function PlayerInfoGui(player, btn)
 	end
 	if btn == 1 then
 		getInfo(player)
-	elseif btn == 2 then
-		setInfo(player)
 	elseif btn == 3 then
 		setRank(player)
 	elseif btn == 4 then
@@ -793,7 +792,7 @@ end
 ----------------------------------------------------------------------------------------
 ---------------------------Mange Tags---------------------------------------------------
 ----------------------------------------------------------------------------------------
-function devRank(play, button)
+function manageTagsGui(play, button)
 	local inRanks = {
 		"power",
 		'name',
@@ -802,25 +801,7 @@ function devRank(play, button)
 		'online',
 		'count',
 		'warningAllowed',
-		'colour',
-		'rights'
-	}
-	local allRights = {
-		'basic toolbar',
-		'readme',
-		'Player Info',
-		'Spectate',
-		'Modifier',
-		'editRank',
-		'Jail',
-		'advTool',
-		'giveOwner',
-		'death chest',
-		'playerTable',
-		'editRights',
-		'canAutoRank',
-		'Anti Grefer',
-		'jailed'
+		'colour'
 	}
 	local function loadTable()
 		countRankMembers()
@@ -831,21 +812,15 @@ function devRank(play, button)
 			frame.flowContent.devTable.add{name="Tname", type="label", caption="name"}
 			frame.flowContent.devTable.add{name="Tinput", type="label", caption="input"}
 			for i, item in pairs(inRanks) do
-				if item ~= 'colour' and item ~= 'rights' then
+				if item ~= 'colour' then
 					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
 					frame.flowContent.devTable.add{name=item .. "_input", type="textfield", caption="inputTextField", text=rank[item]}
-				elseif item == 'colour' then
+				else
 					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
 					frame.flowContent.devTable.add{name=item .. "_input", type="flow", direction = "horizontal"}
 					for colour,value in pairs(rank[item]) do
 						frame.flowContent.devTable.colour_input.add{name=colour, type="textfield", caption="inputTextField", text=value}
 						frame.flowContent.devTable.colour_input[colour].style.maximal_width = 40
-					end
-				else
-					frame.flowContent.devTable.add{name=item .. '_name', type="label", caption=item}
-					frame.flowContent.devTable.add{name=item .. "_input", type="table", colspan=2}
-					for _,item in pairs(allRights) do
-						frame.flowContent.devTable.rights_input.add{name=item .. '_input', type="checkbox", caption=item, state = hasRight(rank, item)}
 					end
 				end
 			end
@@ -853,11 +828,10 @@ function devRank(play, button)
 			play.print('Enter a valid rank')
 		end
 	end
-	local function apply(newRights)
+	local function apply()
 		if play.gui.center.dev.flowContent.devTable.Tname then
 			rank = stringToRank(play.gui.center.dev.flowContent.rankInput.text)
 			if rank then
-			if newRights == false then
 				local playerRanks = {}
 				for i,player in pairs(game.players) do playerRanks[i] = getRank(player).realID end
 				for _,item in pairs(inRanks) do
@@ -871,7 +845,7 @@ function devRank(play, button)
 								end	
 							end
 						end	
-					elseif item == 'colour' then
+					else
 						local vaidColour = true
 						colour_input = play.gui.center.dev.flowContent.devTable.colour_input
 						change = {r=0,g=0,b=0}
@@ -897,37 +871,25 @@ function devRank(play, button)
 				end
 				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
-			else
-				rank.rights = {}
-				for index,item in pairs(allRights) do
-					right = frame.flowContent.devTable.rights_input[item .. '_input'].state
-					if right then rank.rights[index] = item end		
-				end
-				for _,player in pairs(game.players) do if getRank(player).name == rank.name then drawToolbar(player) end end
-				play.print('Rights updated')
-			end
 			end
 		end
 		loadTable()
 	end
 	local function drawFrame ()
-		local frame = play.gui.center.add{name= "dev", type = "frame", caption="Dev Rank panel", direction = "vertical"}
+		local frame = play.gui.center.add{name= "dev", type = "frame", caption="Manage Tags", direction = "vertical"}
         frame.add{type = "flow", name= "flowContent", direction = "vertical"}
         frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
         frame.flowContent.add{name="devInfi", type="label", caption="Only use if you know what you are doing"}
 		frame.flowContent.add{name='rankInput',type='textfield', text='Rank'}
         frame.flowContent.add{name="devTable", type="table", colspan=2}
-        frame.flowNavigation.add{name="btn_dev_apply", type = "button", caption="Apply", tooltip="Apply ."}
-		frame.flowNavigation.add{name="btn_dev_setRanks", type = "button", caption="Set Rights", tooltip="set the new rights"}
-		frame.flowNavigation.add{name="btn_dev_load", type = "button", caption="Load", tooltip="Load data"}
-        frame.flowNavigation.add{name="btn_dev_close", type = "button", caption="Close", tooltip="Close the dev panel."}
+        frame.flowNavigation.add{name="btn_manageTags_apply", type = "button", caption="Apply", tooltip="Apply ."}
+		frame.flowNavigation.add{name="btn_manageTags_load", type = "button", caption="Load", tooltip="Load data"}
+        frame.flowNavigation.add{name="btn_manageTags_close", type = "button", caption="Close", tooltip="Close the dev panel."}
 	end
 	if button == 1 then
-		apply(false)
+		apply()
 	elseif button == 2 then
 		loadTable()
-	elseif button == 3 then
-		apply(true)
 	elseif play.gui.center.dev ~= nil then
 		play.gui.center.dev.destroy()
     else
@@ -1162,6 +1124,7 @@ function rankRightsGui(player, button)
 		'playerTable',
 		'editRights',
 		'manageRanks',
+		'manageTags',
 		'giveOwner',
 		'canAutoRank',
 		'Anti Grefer',
@@ -1218,67 +1181,61 @@ end
 ----------------------------------------------------------------------------------------
 ---------------------------Mange Ranks--------------------------------------------------
 ----------------------------------------------------------------------------------------
-function addRemoveRanksGui(player, button, rank)
-	local powerLevels = {}
-	for id,rank in pairs(globalVars.ranks) do powerLevels[id] = rank.power end
+function addRemoveRanksGui(player, button)
 	local function drawTable()
-		for id,rank in pairs(globalVars.ranks) do powerLevels[id] = rank.power end
 		local table = player.gui.center.rankGui.rankTable
 		table.add{name='id_label',type='label',caption='ID'}
 		table.add{name='name_label',type='label',caption='Name'}
 		table.add{name='power_label',type='label',caption='Power'}
 		table.add{name='condition_label',type='label',caption='AutoRank Condition'}
-		table.add{name='manage_label',type='label',caption='Manage'}
+		table.add{name='manage_label',type='label',caption='Remove?'}
 		for id,rank in pairs(globalVars.ranks) do
 			table.add{name=rank.name..'_id',type='label',caption=rank.realID}
 			table.add{name=rank.name..'_name',type='label',caption=rank.name}
-			table.add{name=rank.name..'_power',type='label',caption=rank.power}
+			table.add{name=rank.name..'_power',type='textfield',text=rank.power}
+			table[rank.name..'_power'].style.maximal_width=50
 			table.add{name=rank.name..'_condition',type='textfield',text=rank.condition}
-			table.add{name=rank.name..'_flow',type='label',direction='horizontal'}
-			table[rank.name..'_flow'].add{name=rank.realID..'_RankUP',type='checkbox',caption='test',state=false}
-			table[rank.name..'_flow'].add{name=rank.realID..'_RankDown',type='checkbox',caption='test',state=false}
-			table[rank.name..'_flow'].add{name=rank.realID..'_RankRemove',type='checkbox',caption='test',state=false}
+			table.add{name=rank.name..'_remove',type='checkbox',state=false}
 		end
 	end
 	local function drawFrame()
-		frame = player.gui.center.rankGui or player.gui.center.add{name='rankGui',type='frame',caption='Ranks',direction='vertical'}
+		local frame = player.gui.center.rankGui or player.gui.center.add{name='rankGui',type='frame',caption='Ranks',direction='vertical'}
 		frame.add{name='rankTable',type='table',colspan=5}
 		frame.add{name='flow',type='flow',direction='horizontal'}
 		frame.flow.add{name='btn_addRemoveRanksGui_AddRank',type='button',caption='Add Rank'}
+		frame.flow.add{name='btn_addRemoveRanksGui_Apply',type='button',caption='Apply'}
 		frame.flow.add{name='btn_addRemoveRanksGui_close',type='button',caption='Close'}
 		drawTable()
 	end
-	local function moveUP()
-	
-	end
-	local function moveDown()
-	
-	end
 	local function removeRank()
-	
+		for id,rank in pairs(globalVars.ranks) do
+			local remove = player.gui.center.rankGui.rankTable[rank.name..'_remove']
+			if rank.realID == 1 and remove then player.print('Owner rank can not be removed') else
+				if remove then
+					for _,a in pairs(game.players) do if getRank(player).realID == rank.realID then player.tag = globalVars.defaultRank.tag end end
+					globalVars.ranks[id] = nil
+				end
+			end
+		end
 	end
 	local function addRank()
 	
 	end
 	local function apply()
-	
+		local table = player.gui.center.rankGui.rankTable
+		for id,rank in pairs(globalVars.ranks) do
+			if tonumber(table[rank.name..'_power'].text) ~= nil and tonumber(table[rank.name..'_power'].text) > 1 then rank.power = tonumber(table[rank.name..'_power']) end
+			rank.condition = table[rank.name..'_condition'].text
+		end
+		removeRank()
 	end
 	if button == 1 then
-		moveUP()
-	elseif button == 2 then
-		moveDown()
-	elseif button == 3 then
-		removeRank()
-	elseif button == 4 then
 		addRank()
-	elseif button == 5 then
+	elseif button == 2 then
 		apply()
 	elseif player.gui.center.rankGui ~= nil then
 		player.gui.center.rankGui.destroy()
     else
       drawFrame()
     end
-	
-	
-
 end
