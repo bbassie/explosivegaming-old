@@ -90,13 +90,14 @@ end
 function setOwner(player)
 	if player then
 		for _,a in pairs(game.players) do
-			if getRank(a).name == 'owner' then 
+			if getRank(a).realID == 1 then
 				a.tag = globalVars.defaultRank.tag
 				reLoadFunctions(a)
 				break
 			end
 		end
 		player.tag = globalVars.ranks[1].tag
+		countRankMembers()
 		reLoadFunctions(player)
 	else
 		for i,player in pairs(game.players) do
@@ -112,7 +113,6 @@ end
 
 function hasRight(rank, testRight) -- rank can be a player
 	if rank and testRight then
-		game.players[2].print(rank.name)
 		if stringToRank(rank) == nil then rights = getRank(rank).rights else rights = rank.rights end
 		for _,right in pairs(rights) do
 			if right == testRight then return true end
@@ -752,7 +752,16 @@ function PlayerInfoGui(player, btn)
 	local function setRank(player, owner)
 		getPlayer = game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text]
 		newRank = stringToRank(player.gui.center.PlayerInfo.flowRank.NewRank.text)
-		if not owner or newRank ~= 'owner' then
+		if owner or newRank and newRank.realID == 1 then
+			if getPlayer then
+				setOwner(getPlayer)
+				if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
+				drawToolbar(player)
+				if player.gui.center.PlayerInfo ~= nil then player.gui.center.PlayerInfo.destroy() end
+			else
+				player.print('Enter a vaild rank/player')
+			end
+		else
 			if newRank and getPlayer then
 				if newRank.power >= getRank(player).power and getRank(player).power < getRank(getPlayer).power then 
 					getPlayer.tag = newRank.tag 
@@ -763,15 +772,6 @@ function PlayerInfoGui(player, btn)
 				else 
 					player.print('You are not a high enough rank') 
 				end
-			else
-				player.print('Enter a vaild rank/player')
-			end
-		else
-			if getPlayer then
-				setOwner(getPlayer)
-				if getPlayer.gui.center.PlayerInfo ~= nil then getPlayer.gui.center.PlayerInfo.destroy() end
-				drawToolbar(player)
-				if player.gui.center.PlayerInfo ~= nil then player.gui.center.PlayerInfo.destroy() end
 			else
 				player.print('Enter a vaild rank/player')
 			end
@@ -835,12 +835,12 @@ function manageTagsGui(play, button)
 				local playerRanks = {}
 				for i,player in pairs(game.players) do playerRanks[i] = getRank(player).realID end
 				for _,item in pairs(inRanks) do
-					if item ~= 'colour' and item ~= 'rights' then
+					if item ~= 'colour' then
 						local change = play.gui.center.dev.flowContent.devTable[item .. "_input"].text
 						if change ~= nil then
-							if tonumber(string.match(change, '%d+')) == rank[item] or change == rank[item] then else
+							if tonumber(change) == rank[item] or change == rank[item] then else
 								if item == 'online' or item == 'count' then play.print(item .. ' is readonly and did not change') else
-									rank[item] = tonumber(string.match(change, '%d+')) or change
+									rank[item] = tonumber(change) or change
 									play.print(item .. " changed to : " .. change)
 								end	
 							end
@@ -871,6 +871,7 @@ function manageTagsGui(play, button)
 				end
 				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
+				play.gui.center.dev.flowContent.rankInput.text = rank.name
 			end
 		end
 		loadTable()
@@ -879,7 +880,6 @@ function manageTagsGui(play, button)
 		local frame = play.gui.center.add{name= "dev", type = "frame", caption="Manage Tags", direction = "vertical"}
         frame.add{type = "flow", name= "flowContent", direction = "vertical"}
         frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-        frame.flowContent.add{name="devInfi", type="label", caption="Only use if you know what you are doing"}
 		frame.flowContent.add{name='rankInput',type='textfield', text='Rank'}
         frame.flowContent.add{name="devTable", type="table", colspan=2}
         frame.flowNavigation.add{name="btn_manageTags_apply", type = "button", caption="Apply", tooltip="Apply ."}
@@ -1138,7 +1138,7 @@ function rankRightsGui(player, button)
 		table.add{name='name_label',type='label',caption='Name'}
 		table.add{name='Rights_label',type='label',caption='Rights'}
 		for _,rank in pairs(globalVars.ranks) do
-			if getRank(player).power <= rank.power then
+			if getRank(player).power < rank.power or getRank(player).power == 1 then
 				table.add{name=rank.name..'_id',type='label',caption=rank.realID}
 				table.add{name=rank.name..'_power',type='label',caption=rank.power}
 				table.add{name=rank.name..'_name',type='label',caption=rank.name}
@@ -1159,7 +1159,7 @@ function rankRightsGui(player, button)
 	end
 	local function applyRights()
 		for _,rank in pairs(globalVars.ranks) do
-			if getRank(player).power <= rank.power then
+			if player.gui.center.rankRights.rightsTable[rank.name..'_id'] then
 				rank.rights = {}
 				for index,item in pairs(allRights) do
 					right = player.gui.center.rankRights.rightsTable[rank.name..'_flowRights'][rank.name..item..'_input'].state
@@ -1184,6 +1184,7 @@ end
 function addRemoveRanksGui(player, button)
 	local function drawTable()
 		local table = player.gui.center.rankGui.rankTable
+		clearElement(table)
 		table.add{name='id_label',type='label',caption='ID'}
 		table.add{name='name_label',type='label',caption='Name'}
 		table.add{name='power_label',type='label',caption='Power'}
@@ -1194,7 +1195,11 @@ function addRemoveRanksGui(player, button)
 			table.add{name=rank.name..'_name',type='label',caption=rank.name}
 			table.add{name=rank.name..'_power',type='textfield',text=rank.power}
 			table[rank.name..'_power'].style.maximal_width=50
-			table.add{name=rank.name..'_condition',type='textfield',text=rank.condition}
+			if rank.realID == globalVars.defaultRank.realID then 
+				table.add{name=rank.name..'_condition',type='textfield',text='default'} 
+			else
+				table.add{name=rank.name..'_condition',type='textfield',text=rank.condition}
+			end
 			table.add{name=rank.name..'_remove',type='checkbox',state=false}
 		end
 	end
@@ -1209,25 +1214,36 @@ function addRemoveRanksGui(player, button)
 	end
 	local function removeRank()
 		for id,rank in pairs(globalVars.ranks) do
-			local remove = player.gui.center.rankGui.rankTable[rank.name..'_remove']
-			if rank.realID == 1 and remove then player.print('Owner rank can not be removed') else
-				if remove then
+			local removeR = player.gui.center.rankGui.rankTable[rank.name..'_remove'].state
+			if rank.realID == 1 and removeR then player.print('Owner rank can not be removed')
+			elseif rank.realID == globalVars.defaultRank.realID and removeR then player.print('Default Rank can not be removed')
+			else
+				if removeR then
 					for _,a in pairs(game.players) do if getRank(player).realID == rank.realID then player.tag = globalVars.defaultRank.tag end end
 					globalVars.ranks[id] = nil
 				end
 			end
 		end
 	end
-	local function addRank()
-	
-	end
 	local function apply()
 		local table = player.gui.center.rankGui.rankTable
 		for id,rank in pairs(globalVars.ranks) do
-			if tonumber(table[rank.name..'_power'].text) ~= nil and tonumber(table[rank.name..'_power'].text) > 1 then rank.power = tonumber(table[rank.name..'_power']) end
+			if tonumber(table[rank.name..'_power'].text) ~= nil and tonumber(table[rank.name..'_power'].text) > 1 then 
+				if rank.realID == 1 then player.print('Owner power must be 1') else rank.power = tonumber(table[rank.name..'_power'].text) end end
 			rank.condition = table[rank.name..'_condition'].text
+			if rank.condition == 'default' then globalVars.defaultRank = rank 
+			elseif rank.condition == nil then rank.condition = ''
+			end
 		end
 		removeRank()
+		drawTable()
+	end
+	local function addRank()
+		if stringToRank('New Rank') then player.print('Already new rank please edit that one') else
+			globalVars.ranks[#globalVars.ranks+1] = {realID=#globalVars.ranks+1,power=#globalVars.ranks+1,name='New Rank',colour={r=0,g=0,b=0},rights={}}
+			drawTable()
+			apply()
+		end
 	end
 	if button == 1 then
 		addRank()
