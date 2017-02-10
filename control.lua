@@ -1,19 +1,17 @@
-script.on_load(function(evernt)
+script.on_load(function(event)
 if globalVars then else
 globalVars = {}
-entityCache = {}
 globalVars.itemRotated = {}
 globalVars.entityRemoved = {}
 globalVars.spectating = {}
 globalVars.warnings = {}
-globalVars.avdToolbarPlayer = {}
 
 globalVars.ranks = {
 {realID=1,power=1,name='owner',	tag='[Owner]',	playerListTag='- Owner',	colour={r=170,g=0,b=0},			online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageTags','manageRanks','giveOwner'}},
 {realID=2,power=2,name='dev',	tag='[Dev]',	playerListTag='- Dev',		colour={r=65,g=233,b=233},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights','manageTags','manageRanks'}},
 {realID=3,power=3,name='admin',	tag='[Admin]',	playerListTag='- Admin',	colour={r=233,g=63,b=233},		online=0,count=0,warningAllowed=nil,	condition='player.admin == true',					rights={'basic toolbar','readme','Player Info','death chest','Modifier','editRank','Jail','advTool','playerTable','editRights'}},
-{realID=4,power=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		condition='ticktominutes(player.online_time) >= 2',	rights={'basic toolbar','readme','Player Info','death chest','Jail','canAutoRank'}},
-{realID=5,power=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		condition='ticktominutes(player.online_time) >= 1',	rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
+{realID=4,power=4,name='mod',	tag='[Mod]',	playerListTag='- Mod',		colour={r=200,g=0,b=200},		online=0,count=0,warningAllowed=10,		condition='ticktominutes(player.online_time) >= 600',rights={'basic toolbar','readme','Player Info','death chest','Jail','canAutoRank'}},
+{realID=5,power=5,name='reg',	tag='[Reg]',	playerListTag='- Reg',		colour={r=24,g=172,b=188},		online=0,count=0,warningAllowed=5,		condition='ticktominutes(player.online_time) >= 120',rights={'basic toolbar','readme','Player Info','death chest','canAutoRank'}},
 {realID=6,power=6,name='guest',	tag='',			playerListTag='',			colour={r=255,g=159,b=27},		online=0,count=0,warningAllowed=2,		condition='default',								rights={'Anti Grefer','basic toolbar','readme','canAutoRank'}},
 {realID=7,power=7,name='jail',	tag='[Jailed]',	playerListTag='- Jailed',	colour={r=175,g=175,b=175},		online=0,count=0,warningAllowed=nil,	condition='',										rights={'Anti Grefer','readme','jailed','death chest'}}
 }
@@ -22,8 +20,6 @@ globalVars.defaultRank = stringToRank('guest')
 
 lotOfBelt = 5
 lotOfRemoving = 5
-lotOfRemoving = 5
-syncVar = nil
 end
 end)
 --------------------------------------------------------------------------------
@@ -66,7 +62,6 @@ function reLoadFunctions(player)
 	countRankMembers()
 	drawPlayerList()
 	if player then drawToolbar(player) end
-	sync(true)
 end
 --------------------------------------------------------------------------------
 ---------------------------Rank Functions--------------------------------------
@@ -223,6 +218,7 @@ function jail(player ,byPlayer)
 			globalVars.warnings[player.index] = 0
 			callRank(player.name .. ' has been jailed by ' .. byPlayerName, byPlayerRank)
 			reLoadFunctions(player)
+			sync(true)
 		else
 			if byPlayerName ~= 'server' then byPlayer.print('Your rank is to low to Jail this player') end
 		end
@@ -414,8 +410,10 @@ script.on_event(defines.events.on_gui_click, function(event)
     jail(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text] ,player)
   elseif event.element.name == "addWarningsBtn" then
     editWarnings(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text], 1, player)
+	sync(true)
   elseif event.element.name == "removeWarningsBtn" then
     editWarnings(game.players[player.gui.center.PlayerInfo.flowFind.playerNameInput.text], -1, player)
+	sync(true)
   elseif event.element.name == "RankBtn" then
     PlayerInfoGui(player, 3)
   elseif event.element.name == "giveOwnerBtn" then
@@ -484,6 +482,7 @@ script.on_event(defines.events.on_player_rotated_entity, function(event)
 				callRank(player.name .. " has rotated a lot of belts")
 				editWarnings(player, 1)
 			end
+			sync(true)
 		end
 	end
 	reLoadFunctions(player)
@@ -514,6 +513,7 @@ script.on_event(defines.events.on_player_mined_item, function(event)
 				callRank(player.name .. " has removed alot of stuff and got from it a " .. name)
 				editWarnings(player, 1)
 			end
+			sync(true)
 		end
 	end
 	reLoadFunctions(player)
@@ -596,39 +596,40 @@ end
 ---------------------------Tool Bar-----------------------------------------------------
 ----------------------------------------------------------------------------------------
 function drawToolbar(player)
-    local frame = player.gui.top
+    local frame = player.gui.top.Toolbar or player.gui.top.add{name='Toolbar',type='flow',direction='horizontal'}
     clearElement(frame)
     if hasRight(player, 'basic toolbar') then frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."} end
     if hasRight(player, 'basic toolbar') then frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."} end
     if hasRight(player, 'readme') then frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."} end
     if hasRight(player, 'Spectate') then frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."} end
 	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end
-	if hasRight(player, 'advTool') then frame.add{name="advTool", type = "button", caption="Adv. Toolbar", tooltip="Toggle Adv. Toolbar"} end 
-	if globalVars.avdToolbarPlayer[player.index] then
-		frame.add{name='Adv_toolbar',type='flow'}
-		if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
-		if hasRight(player, 'manageTags') then frame.add{name="btn_manageTags", type = "button", caption="Manage Tags"} end
-		if hasRight(player, 'playerTable') then frame.add{name="btn_playerTable", type = "button", caption="Player Table"} end
-		if hasRight(player, 'editRights') then frame.add{name="btn_rankRights", type = "button", caption="Edit Rights"} end
-		if hasRight(player, 'manageRanks') then frame.add{name="btn_addRemoveRanksGui", type = "button", caption="Manage Ranks"} end
-	end
+	if hasRight(player, 'advTool') then frame.add{name="advTool", type = "button", caption="Adv. Toolbar", tooltip="Toggle Adv. Toolbar"} end
+	frame = player.gui.top.Adv_toolbar or player.gui.top.add{name='Adv_toolbar',type='flow',direction='horizontal'}
+	clearElement(frame)
+	if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
+	if hasRight(player, 'manageTags') then frame.add{name="btn_manageTags", type = "button", caption="Manage Tags"} end
+	if hasRight(player, 'playerTable') then frame.add{name="btn_playerTable", type = "button", caption="Player Table"} end
+	if hasRight(player, 'editRights') then frame.add{name="btn_rankRights", type = "button", caption="Edit Rights"} end
+	if hasRight(player, 'manageRanks') then frame.add{name="btn_addRemoveRanksGui", type = "button", caption="Manage Ranks"} end
 end 
 
-function advToolbarSwitch(player)
-	if globalVars.avdToolbarPlayer[player.index] == nil then globalVars.avdToolbarPlayer[player.index] = false end
-	globalVars.avdToolbarPlayer[player.index] = not globalVars.avdToolbarPlayer[player.index]
+function advToolbarSwitch(play)
+  if play.gui.top.Adv_toolbar then
+	if play.gui.top.Adv_toolbar.style.visible == nil then play.gui.top.Adv_toolbar.style.visible = false end
+    play.gui.top.Adv_toolbar.style.visible = not play.gui.top.Adv_toolbar.style.visible
+  end
 end
 
 function satelliteGuiSwitch(play)
   if play.gui.left.rocket_score then
-	if play.gui.left.rocket_score.style.visible == nil then play.gui.left.rocket_score.style.visible = true end
+	if play.gui.left.rocket_score.style.visible == nil then play.gui.left.rocket_score.style.visible = false end
     play.gui.left.rocket_score.style.visible = not play.gui.left.rocket_score.style.visible
   end
 end
 
 function playerListGuiSwitch(play)
   if play.gui.left.PlayerList then
-	if play.gui.left.PlayerList.style.visible == nil then play.gui.left.PlayerList.style.visible = true end
+	if play.gui.left.PlayerList.style.visible == nil then play.gui.left.PlayerList.style.visible = false end
     play.gui.left.PlayerList.style.visible = not play.gui.left.PlayerList.style.visible
   end
 end
@@ -645,6 +646,7 @@ function spectate(player)
 	globalVars.spectating[player.index] = nil
 	player.print("You are not spectating")
   end
+  sync(true)
 end
 ----------------------------------------------------------------------------------------
 ---------------------------Player List--------------------------------------------------
@@ -872,6 +874,7 @@ function manageTagsGui(play, button)
 				for i,player in pairs(game.players) do player.tag = globalVars.ranks[playerRanks[i]].tag end
 				drawPlayerList()
 				play.gui.center.dev.flowContent.rankInput.text = rank.name
+				sync(true)
 			end
 		end
 		loadTable()
@@ -1169,6 +1172,7 @@ function rankRightsGui(player, button)
 			end
 		end
 		player.print('Rights updated')
+		sync(true)
 	end
 	if button then
 		applyRights()
@@ -1237,6 +1241,7 @@ function addRemoveRanksGui(player, button)
 		end
 		removeRank()
 		drawTable()
+		sync(true)
 	end
 	local function addRank()
 		if stringToRank('New Rank') then player.print('Already new rank please edit that one') else
