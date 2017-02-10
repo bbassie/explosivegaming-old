@@ -605,6 +605,7 @@ function drawToolbar(player)
 	if hasRight(player, 'Player Info') then frame.add{name="playerInfoBtn", type = "button", caption="Player Info", tooltip="Lookup player info"} end
 	if hasRight(player, 'advTool') then frame.add{name="advTool", type = "button", caption="Adv. Toolbar", tooltip="Toggle Adv. Toolbar"} end
 	frame = player.gui.top.Adv_toolbar or player.gui.top.add{name='Adv_toolbar',type='flow',direction='horizontal'}
+	if player.gui.top.Adv_toolbar.style.visible == nil then player.gui.top.Adv_toolbar.style.visible = false end
 	clearElement(frame)
 	if hasRight(player, 'Modifier') then frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."} end
 	if hasRight(player, 'manageTags') then frame.add{name="btn_manageTags", type = "button", caption="Manage Tags"} end
