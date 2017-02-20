@@ -680,6 +680,7 @@ function drawPlayerTable(play, guiroot, tablename, filters)
       if filter == 'admin' and player.admin == false then addPlayer = false break
       elseif stringToRank(filter) and stringToRank(filter).power ~= getRank(player).power then addPlayer = false break
 	  elseif filter == 'online' and player.connected == false then addPlayer = false break
+	  elseif filter == 'offline' and player.connected == true then addPlayer = false break
 	  elseif tonumber(filter) and tonumber(filter) > ticktominutes(player.online_time) then addPlayer = false break
 	  end
 	end
@@ -1097,7 +1098,8 @@ function playerTableGui(player, button)
 		status_input = player.gui.center.playerTable.filterTable.status_input.text
 		hours_input =  player.gui.center.playerTable.filterTable.hours_input.text
 		rank_input =  player.gui.center.playerTable.filterTable.rank_input.text
-		if status_input == 'yes' or status_input == 'online' then filters[1] = 'online' end
+		if status_input == 'yes' or status_input == 'online' or status_input == 'true' or status_input == 'y' then filters[1] = 'online'
+		elseif status_input ~= '' then filters[1] = 'offline' end
 		if tonumber(hours_input) and tonumber(hours_input) > 0 then filters[2] = tonumber(hours_input) end
 		if stringToRank(rank_input) then filters[3] = rank_input end
 		if player.gui.center.playerTable.filteredList then player.gui.center.playerTable.filteredList.destroy() end
