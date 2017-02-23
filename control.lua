@@ -251,7 +251,7 @@ function deathChest(player)
 			if inventory ~= nil then
 				for item = 1, #inventory do
 					if inventory[item].valid_for_read then
-					if count == 48 then break else:
+					if count == 48 then break else
 						count = count + 1
 						tomb_inventory[count].set_stack(inventory[item])
 					end
