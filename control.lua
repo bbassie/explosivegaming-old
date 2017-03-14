@@ -3,6 +3,7 @@ itemRotated = {}
 entityRemoved = {}
 entityCache = {}
 spectating = {}
+guis = {frames={},buttons={}}
 
 warningAllowed = nil
 timeForRegular = 180
@@ -60,6 +61,48 @@ function clearElement (elementToClear)
   end
 end
 ----------------------------------------------------------------------------------------
+---------------------------Gui Functions------------------------------------------------
+----------------------------------------------------------------------------------------
+function addFrame(frame)
+	guis.frames[frame] = {}
+end
+
+function addTab(frame, tabName, describtion, drawTab)
+	guis.frames[frame][tabName] = {tabName, describtion, drawTab}
+end
+
+function addButton(frame, btnName, caption, describtion, onClick)
+	guis.buttons[btnName] = {btnName, onClick}
+	frame.add{name=btnName, type = "button", caption=caption, tooltip=describtion}
+end
+
+function drawFrame(player, frameName, tabName)
+	frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='horizontal'}
+	tabBar = frame.add{type = "scroll-pane", name= "tabBar", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+	tab = frame.add{type = "scroll-pane", name= "tab", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+	for _,t in pairs(guis.frames[frameName]) do
+		addButton(tabBar, t[1], t[1], t[2], function(player, tab) t[3](player, tab) end)
+		if t[1] == tabName then
+			tabBar[t[1]].style.font_color = {r = 255, g = 255, b = 255, a = 255}
+			t[3](player, tab)
+		else
+			tabBar[t[1]].style.font_color = {r = 100, g = 100, b = 100, a = 255}
+		end
+	end
+	addButton(tabBar, 'close', 'Close', 'Close this window', function(player) clearElement(player.gui.center) end)
+end
+
+function toggleVisable(player, direction, frame)
+	frame = player.gui[direction][frame]
+	if frame then
+		if frame.style.visible == nil then
+			frame.style.visible = false 
+		else
+			frame.style.visible = not frame.style.visible
+		end
+	end
+end
+----------------------------------------------------------------------------------------
 ---------------------------Player Events------------------------------------------------
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_player_created, function(event)
@@ -105,7 +148,7 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
   game.write_file("players.json", playerStringTable, false)
   if not player.admin and ticktominutes(player.online_time) < 1 then
-    ReadmeGui(player, "Rules")
+    drawFrame(player,'Readme','Rules')
   end
 end)
 
@@ -118,28 +161,7 @@ end)
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
   local player = game.players[event.player_index]
-  if event.element.name == "btn_readme" then
-    ReadmeGui(player, "Rules", true)
-  elseif event.element.name == "btn_readme_rules" then
-    player.gui.center.README.destroy()
-    ReadmeGui(player, "Rules")
-  elseif event.element.name == "btn_readme_server_info" then
-    player.gui.center.README.destroy()
-    ReadmeGui(player, "Server info")
-  elseif event.element.name == "btn_readme_chat" then
-    player.gui.center.README.destroy()
-    ReadmeGui(player, "Chat")
-  elseif event.element.name == "btn_readme_admins" then
-    player.gui.center.README.destroy()
-    ReadmeGui(player, "Admins")
-  elseif event.element.name == "btn_readme_players" then
-    player.gui.center.README.destroy()
-    ReadmeGui(player, "Players")
-  elseif event.element.name == "btn_readme_close" then
-    player.gui.center.README.destroy()
-  elseif event.element.name == "btn_toolbar_playerList" then
-    playerListGuiSwitch(player)
-  elseif event.element.name == "btn_toolbar_getPlayerInventory" then
+  if event.element.name == "btn_toolbar_getPlayerInventory" then
     drawGetPlayerInventory(player, nil)
   elseif event.element.name == "btn_getPlayerInventory_close" then
     player.gui.center.getPlayerInventory.destroy()
@@ -151,9 +173,13 @@ script.on_event(defines.events.on_gui_click, function(event)
     modifierGui(player, true)
   elseif event.element.name == "btn_Modifier_close" then
     player.gui.center.modifier.destroy()
-  elseif event.element.name == "btn_toolbar_rocket_score" then
-    satelliteGuiSwitch(player)
-  end
+  else
+		for _,btn in pairs(guis.buttons) do
+			if btn[1] == event.element.name then
+				btn[2](player)
+			end
+		end
+	end
 end)
 ----------------------------------------------------------------------------------------
 ---------------------------Grefer Events------------------------------------------------
@@ -262,32 +288,12 @@ function drawToolbar()
   for i, a in pairs(game.players) do
     local frame = a.gui.top
     clearElement(frame)
-    frame.add{name="btn_toolbar_rocket_score", type = "button", caption="Rocket score", tooltip="Show the satellite launched counter if a satellite has launched."}
-    frame.add{name="btn_toolbar_playerList", type = "button", caption="Playerlist", tooltip="Adds a player list to your game."}
-    frame.add{name="btn_readme", type = "button", caption="Readme", tooltip="Rules, Server info, How to chat, Playerlist, Adminlist."}
+		addButton(frame,"btn_toolbar_playerList", "Playerlist", "Adds a player list to your game.",function(player) toggleVisable(player, 'left', 'PlayerList') end)
+		addButton(frame,"btn_toolbar_rocket_score", "Rocket score", "Show the satellite launched counter if a satellite has launched.",function(player) toggleVisable(player, 'left', 'rocket_score') end)
+    addButton(frame,"btn_readme", "Readme", "Rules, Server info, How to chat, Playerlist, Adminlist.",function(player) drawFrame(player,'Readme','Rules') end)
     if a.admin == true then
       --frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
       frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
-    end
-  end
-end
-
-function satelliteGuiSwitch(play)
-  if play.gui.left.rocket_score ~= nil then
-    if play.gui.left.rocket_score.style.visible == true then
-      play.gui.left.rocket_score.style.visible = false
-    else
-      play.gui.left.rocket_score.style.visible = true
-    end
-  end
-end
-
-function playerListGuiSwitch(play)
-  if play.gui.left.PlayerList ~= nil then
-    if play.gui.left.PlayerList.style.visible == false then
-      play.gui.left.PlayerList.style.visible = true
-    else
-      play.gui.left.PlayerList.style.visible = false
     end
   end
 end
@@ -388,26 +394,12 @@ end
 ----------------------------------------------------------------------------------------
 ---------------------------Read Me Gui--------------------------------------------------
 ----------------------------------------------------------------------------------------
-function ReadmeGui(play, page, btn)
-	local function drawREADME(play, page)
-		local frame = play.gui.center.add{name= "README", type = "frame", direction = "vertical"}
-			frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-			frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-			frame.flowNavigation.add{name="btn_readme_rules", type = "button", caption="Rules", tooltip= "Rules."}
-			frame.flowNavigation.add{name="btn_readme_server_info", type = "button", caption="Server info", tooltip= "Server information page."}
-			frame.flowNavigation.add{name="btn_readme_chat", type = "button", caption="Chat", tooltip= "How to chat."}
-			frame.flowNavigation.add{name="btn_readme_admins", type = "button", caption="Admins", tooltip= "All the admins and info."}
-			frame.flowNavigation.add{name="btn_readme_players", type = "button", caption="Players", tooltip= "All the players that have joined this map."}
-			frame.flowNavigation.add{name="btn_readme_close", type = "button", caption="Close", tooltip= "Close the readme."}
-			frame.flowContent.style.maximal_height = 400
-			frame.flowContent.style.minimal_height = 400
-			frame.flowContent.style.maximal_width = 500
-			frame.flowContent.style.minimal_width = 500
-			frame.flowNavigation.style.maximal_width = 500
-			frame.flowNavigation.style.minimal_width = 500
-		ReadmeGui(play, page)
-	end
-	local function drawRules(play, frame)
+addFrame('Readme')
+
+addTab('Readme','Rules','The rules of the server',
+	function(player,frame)
+		frame = frame or player.gui.center.Readme.tab
+		clearElement(frame)
 		local rules = {
 			"Hacking/cheating, exploiting and abusing bugs is not allowed.",
 			"Do not disrespect any player in the server (This includes staff).",
@@ -419,90 +411,63 @@ function ReadmeGui(play, page, btn)
 			"Do not ask for rank.",
 			"Left Hand Drive (LHD) only.",
 			"Use common sense."}
-		frame.caption = "Rules"
 		for i, rule in pairs(rules) do
-			frame.flowContent.add{name=i, type="label", caption={"", i ,". ", rule}}
+			frame.add{name=i, type="label", caption={"", i ,". ", rule}}
 		end
-	end
-	local function drawServerInfo(play, frame)
+	end)
+addTab('Readme','Server Info','Info about the server',
+	function(player,frame)
+		frame = frame or player.gui.center.Readme.tab
+		clearElement(frame)
 		local serverInfo = {
 			"Discord voice and chat server:",
 			"https://discord.gg/RPCxzgt",
 			"Our forum:",
 			"explosivegaming.nl"
     }
-		frame.caption = "Server info"
 		for i, line in pairs(serverInfo) do
-			frame.flowContent.add{name=i, type="label", caption={"", line}}
+			frame.add{name=i, type="label", caption={"", line}}
 		end
-	end
-	local function drawChat(play, frame)
+	end)
+addTab('Readme','How to chat','Just in case you dont know how to chat',
+	function(player,frame)
+		frame = frame or player.gui.center.Readme.tab
+		clearElement(frame)
 		local chat = {
 				"Chatting for new players can be difficult because it’s different than other games!",
 				"It’s very simple, the button you need to press is the “GRAVE/TILDE key”",
 				"it’s located under the “ESC key”. If you would like to change the key go to your",
 				"controls tab in options. The key you need to change is “Toggle Lua console”",
 				"it’s located in the second column 2nd from bottom."}
-		frame.caption = "Chat"
 		for i, line in pairs(chat) do
-			frame.flowContent.add{name=i, type="label", caption={"", line}}
+			frame.add{name=i, type="label", caption={"", line}}
 		end
-	end
-	local function drawAdmins(play, frame)
+	end)
+addTab('Readme','Admins','List of all the people who can ban you :P',
+	function(player,frame)
+		frame = frame or player.gui.center.Readme.tab
+		clearElement(frame)
 		local admins = {
 			"This list contains all the people that are admin in this world. Do you want to become",
 			"an admin dont ask for it! an admin will see what you've made and the time you put",
 			"in the server."}
-		frame.caption = "Admins"
 		for i, line in pairs(admins) do
-			frame.flowContent.add{name=i, type="label", caption={"", line}}
+			frame.add{name=i, type="label", caption={"", line}}
 		end
-		drawPlayerTable(play, frame.flowContent, "AdminTable", true, nil, nil)
-	end
-	local function drawPlayers(play, frame, players)
+		drawPlayerTable(player, frame, "AdminTable", true, nil, nil)
+	end)
+addTab('Readme','Players','List of all the people who have been on the server',
+	function(player,frame)
+		frame = frame or player.gui.center.Readme.tab
+		clearElement(frame)
 		local players = {
 			"These are the players who have supported us in the making of this factory. Without",
 			"you the player we wouldn't have been as far as we are now."}
-		frame.caption = "Players"
 		for i, line in pairs(players) do
-			frame.flowContent.add{name=i, type="label", caption={"", line}}
+			frame.add{name=i, type="label", caption={"", line}}
 		end
-		drawPlayerTable(play, frame.flowContent, "PlayerTable", false, nil, nil)
-	end
-  if play.gui.center.README ~= nil then
-    if page == "Rules" then
-      if btn == true then
-        play.gui.center.README.destroy()
-        return
-      end
-      clearElement(play.gui.center.flowcontent)
-      drawRules(play, play.gui.center.README)
-      return
-    elseif page == "Server info" then
-      clearElement(play.gui.center.flowcontent)
-      drawServerInfo(play, play.gui.center.README)
-      return
-    elseif page == "Chat" then
-      clearElement(play.gui.center.flowcontent)
-      drawChat(play, play.gui.center.README)
-      return                  
-    elseif page == "Admins" then
-      clearElement(play.gui.center.flowcontent)
-      drawAdmins(play, play.gui.center.README)
-      return  
-    elseif page == "Players" then
-      clearElement(play.gui.center.flowcontent)
-      drawPlayers(play, play.gui.center.README)
-      return
-    else
-      play.gui.center.README.destroy()
-      return
-    end
-  else
-    drawREADME(play, page)
-    return
-  end
-end
+		drawPlayerTable(player, frame, "PlayerTable", false, nil, nil)
+	end)
 ----------------------------------------------------------------------------------------
 ---------------------------Modifier Gui-------------------------------------------------
 ----------------------------------------------------------------------------------------
