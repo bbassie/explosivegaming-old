@@ -84,7 +84,7 @@ end
 function drawFrame(player, frameName, tabName)
 	if player.gui.center[frameName] then player.gui.center[frameName].destroy() end
 	frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='vertical'}
-	tabBarScroll = frame.add{type = "scroll-pane", name= "tabBarScroll", vertical_scroll_policy="never", horizontal_scroll_policy="auto"}
+	tabBarScroll = frame.add{type = "scroll-pane", name= "tabBarScroll", vertical_scroll_policy="never", horizontal_scroll_policy="always"}
 	tabBar = tabBarScroll.add{type='flow',direction='horizontal',name='tabBar'}
 	tab = frame.add{type = "scroll-pane", name= "tab", vertical_scroll_policy="auto", horizontal_scroll_policy="never"}
 	for _,t in pairs(guis.frames[frameName]) do
