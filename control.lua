@@ -53,13 +53,7 @@ function callAdmin(msg)
 	end
 end
 
-function clearElement (elementToClear)
-  if elementToClear ~= nil then
-    for i, element in pairs(elementToClear.children_names) do
-      elementToClear[element].destroy()
-    end
-  end
-end
+
 ----------------------------------------------------------------------------------------
 ---------------------------Gui Functions------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -76,12 +70,8 @@ function addButton(frame, btnName, caption, describtion, onClick)
 	frame.add{name=btnName, type = "button", caption=caption, tooltip=describtion}
 end
 
-function drawFrame(player, frameName, tabName)
-	frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='horizontal'}
-	tabBar = frame.add{type = "scroll-pane", name= "tabBar", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-	tab = frame.add{type = "scroll-pane", name= "tab", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
+function openTab(player, frameName, tab, tabName)
 	for _,t in pairs(guis.frames[frameName]) do
-		addButton(tabBar, t[1], t[1], t[2], function(player, tab) t[3](player, tab) end)
 		if t[1] == tabName then
 			tabBar[t[1]].style.font_color = {r = 255, g = 255, b = 255, a = 255}
 			t[3](player, tab)
@@ -89,11 +79,30 @@ function drawFrame(player, frameName, tabName)
 			tabBar[t[1]].style.font_color = {r = 100, g = 100, b = 100, a = 255}
 		end
 	end
-	addButton(tabBar, 'close', 'Close', 'Close this window', function(player) clearElement(player.gui.center) end)
 end
 
-function toggleVisable(player, direction, frame)
-	frame = player.gui[direction][frame]
+function drawFrame(player, frameName, tabName)
+	if player.gui.center[frameName] then player.gui.center[frameName].destroy() end
+	frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='vertical'}
+	tabBarScroll = frame.add{type = "scroll-pane", name= "tabBarScroll", vertical_scroll_policy="never", horizontal_scroll_policy="auto"}
+	tabBar = tabBarScroll.add{type='flow',direction='horizontal',name='tabBar'}
+	tab = frame.add{type = "scroll-pane", name= "tab", vertical_scroll_policy="auto", horizontal_scroll_policy="never"}
+	for _,t in pairs(guis.frames[frameName]) do
+		addButton(tabBar, t[1], t[1], t[2], function(player, element) openTab(player, 'Readme', element.parent.parent.parent.tab, element.name) end)
+	end
+	openTab(player, frameName, tab, tabName)
+	addButton(tabBar, 'close', 'Close', 'Close this window', function(player,element) element.parent.parent.destroy() end)
+	tab.style.minimal_height = 300
+	tab.style.maximal_height = 300
+	tab.style.minimal_width = 500
+	tab.style.maximal_width = 500
+	tabBarScroll.style.minimal_height = 60
+	tabBarScroll.style.maximal_height = 60
+	tabBarScroll.style.minimal_width = 500
+	tabBarScroll.style.maximal_width = 500
+end
+
+function toggleVisable(frame)
 	if frame then
 		if frame.style.visible == nil then
 			frame.style.visible = false 
@@ -101,6 +110,14 @@ function toggleVisable(player, direction, frame)
 			frame.style.visible = not frame.style.visible
 		end
 	end
+end
+
+function clearElement (elementToClear)
+  if elementToClear ~= nil then
+    for i, element in pairs(elementToClear.children_names) do
+      elementToClear[element].destroy()
+    end
+  end
 end
 ----------------------------------------------------------------------------------------
 ---------------------------Player Events------------------------------------------------
@@ -176,7 +193,7 @@ script.on_event(defines.events.on_gui_click, function(event)
   else
 		for _,btn in pairs(guis.buttons) do
 			if btn[1] == event.element.name then
-				btn[2](player)
+				btn[2](player,event.element)
 			end
 		end
 	end
@@ -288,8 +305,8 @@ function drawToolbar()
   for i, a in pairs(game.players) do
     local frame = a.gui.top
     clearElement(frame)
-		addButton(frame,"btn_toolbar_playerList", "Playerlist", "Adds a player list to your game.",function(player) toggleVisable(player, 'left', 'PlayerList') end)
-		addButton(frame,"btn_toolbar_rocket_score", "Rocket score", "Show the satellite launched counter if a satellite has launched.",function(player) toggleVisable(player, 'left', 'rocket_score') end)
+		addButton(frame,"btn_toolbar_playerList", "Playerlist", "Adds a player list to your game.",function(player) toggleVisable(player.gui.left.PlayerList) end)
+		addButton(frame,"btn_toolbar_rocket_score", "Rocket score", "Show the satellite launched counter if a satellite has launched.",function(player) toggleVisable(player.gui.left.rocket_score) end)
     addButton(frame,"btn_readme", "Readme", "Rules, Server info, How to chat, Playerlist, Adminlist.",function(player) drawFrame(player,'Readme','Rules') end)
     if a.admin == true then
       --frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
@@ -398,7 +415,6 @@ addFrame('Readme')
 
 addTab('Readme','Rules','The rules of the server',
 	function(player,frame)
-		frame = frame or player.gui.center.Readme.tab
 		clearElement(frame)
 		local rules = {
 			"Hacking/cheating, exploiting and abusing bugs is not allowed.",
@@ -417,7 +433,6 @@ addTab('Readme','Rules','The rules of the server',
 	end)
 addTab('Readme','Server Info','Info about the server',
 	function(player,frame)
-		frame = frame or player.gui.center.Readme.tab
 		clearElement(frame)
 		local serverInfo = {
 			"Discord voice and chat server:",
@@ -431,7 +446,6 @@ addTab('Readme','Server Info','Info about the server',
 	end)
 addTab('Readme','How to chat','Just in case you dont know how to chat',
 	function(player,frame)
-		frame = frame or player.gui.center.Readme.tab
 		clearElement(frame)
 		local chat = {
 				"Chatting for new players can be difficult because it’s different than other games!",
@@ -445,7 +459,6 @@ addTab('Readme','How to chat','Just in case you dont know how to chat',
 	end)
 addTab('Readme','Admins','List of all the people who can ban you :P',
 	function(player,frame)
-		frame = frame or player.gui.center.Readme.tab
 		clearElement(frame)
 		local admins = {
 			"This list contains all the people that are admin in this world. Do you want to become",
@@ -458,7 +471,6 @@ addTab('Readme','Admins','List of all the people who can ban you :P',
 	end)
 addTab('Readme','Players','List of all the people who have been on the server',
 	function(player,frame)
-		frame = frame or player.gui.center.Readme.tab
 		clearElement(frame)
 		local players = {
 			"These are the players who have supported us in the making of this factory. Without",
