@@ -71,6 +71,7 @@ function addButton(frame, btnName, caption, describtion, onClick)
 end
 
 function openTab(player, frameName, tab, tabName)
+	local  tabBar = player.gui.center[frameName].tabBarScroll.tabBar
 	for _,t in pairs(guis.frames[frameName]) do
 		if t[1] == tabName then
 			tabBar[t[1]].style.font_color = {r = 255, g = 255, b = 255, a = 255}
@@ -83,15 +84,15 @@ end
 
 function drawFrame(player, frameName, tabName)
 	if player.gui.center[frameName] then player.gui.center[frameName].destroy() end
-	frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='vertical'}
-	tabBarScroll = frame.add{type = "scroll-pane", name= "tabBarScroll", vertical_scroll_policy="never", horizontal_scroll_policy="always"}
-	tabBar = tabBarScroll.add{type='flow',direction='horizontal',name='tabBar'}
-	tab = frame.add{type = "scroll-pane", name= "tab", vertical_scroll_policy="auto", horizontal_scroll_policy="never"}
+	local frame = player.gui.center.add{name=frameName,type='frame',caption=frameName,direction='vertical'}
+	local tabBarScroll = frame.add{type = "scroll-pane", name= "tabBarScroll", vertical_scroll_policy="never", horizontal_scroll_policy="always"}
+	local tabBar = tabBarScroll.add{type='flow',direction='horizontal',name='tabBar'}
+	local tab = frame.add{type = "scroll-pane", name= "tab", vertical_scroll_policy="auto", horizontal_scroll_policy="never"}
 	for _,t in pairs(guis.frames[frameName]) do
 		addButton(tabBar, t[1], t[1], t[2], function(player, element) openTab(player, 'Readme', element.parent.parent.parent.tab, element.name) end)
 	end
 	openTab(player, frameName, tab, tabName)
-	addButton(tabBar, 'close', 'Close', 'Close this window', function(player,element) element.parent.parent.destroy() end)
+	addButton(tabBar, 'close', 'Close', 'Close this window', function(player,element) element.parent.parent.parent.destroy() end)
 	tab.style.minimal_height = 300
 	tab.style.maximal_height = 300
 	tab.style.minimal_width = 500
