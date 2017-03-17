@@ -2,7 +2,6 @@
 itemRotated = {}
 entityRemoved = {}
 entityCache = {}
-spectating = {}
 guis = {frames={},buttons={}}
 
 warningAllowed = nil
@@ -53,7 +52,14 @@ function callAdmin(msg)
 	end
 end
 
-
+function autoMessage()
+	game.print('There are '..#game.connected_players..' players online')
+	game.print('Please join us on:')
+	game.print('Discord: https://discord.gg/RPCxzgt')
+	game.print('Forum: explosivegaming.nl')
+	game.print('Steam: http://steamcommunity.com/groups/tntexplosivegaming')
+	game.print('To see these links again goto: Readme > Server Info')
+end
 ----------------------------------------------------------------------------------------
 ---------------------------Gui Functions------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -71,10 +77,11 @@ function addButton(frame, btnName, caption, describtion, onClick)
 end
 
 function openTab(player, frameName, tab, tabName)
-	local  tabBar = player.gui.center[frameName].tabBarScroll.tabBar
+	local tabBar = player.gui.center[frameName].tabBarScroll.tabBar
 	for _,t in pairs(guis.frames[frameName]) do
 		if t[1] == tabName then
 			tabBar[t[1]].style.font_color = {r = 255, g = 255, b = 255, a = 255}
+			clearElement(tab)
 			t[3](player, tab)
 		else
 			tabBar[t[1]].style.font_color = {r = 100, g = 100, b = 100, a = 255}
@@ -89,7 +96,7 @@ function drawFrame(player, frameName, tabName)
 	local tabBar = tabBarScroll.add{type='flow',direction='horizontal',name='tabBar'}
 	local tab = frame.add{type = "scroll-pane", name= "tab", vertical_scroll_policy="auto", horizontal_scroll_policy="never"}
 	for _,t in pairs(guis.frames[frameName]) do
-		addButton(tabBar, t[1], t[1], t[2], function(player, element) openTab(player, 'Readme', element.parent.parent.parent.tab, element.name) end)
+		addButton(tabBar, t[1], t[1], t[2], function(player, element) openTab(player, element.parent.parent.parent.name, element.parent.parent.parent.tab, element.name) end)
 	end
 	openTab(player, frameName, tab, tabName)
 	addButton(tabBar, 'close', 'Close', 'Close this window', function(player,element) element.parent.parent.parent.destroy() end)
@@ -136,11 +143,6 @@ script.on_event(defines.events.on_player_created, function(event)
     player.insert{name="deconstruction-planner", count = 1}
   end
   player.force.chart(player.surface, {{player.position.x - 200, player.position.y - 200}, {player.position.x + 200, player.position.y + 200}})
-  if (#game.players <= 1) then
-    game.show_message_dialog{text = {"msg-intro"}}
-  else
-    player.print({"msg-intro"})
-  end
 end)
 
 script.on_event(defines.events.on_player_respawned, function(event)
@@ -179,22 +181,13 @@ end)
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
   local player = game.players[event.player_index]
-  if event.element.name == "btn_toolbar_getPlayerInventory" then
-    drawGetPlayerInventory(player, nil)
-  elseif event.element.name == "btn_getPlayerInventory_close" then
-    player.gui.center.getPlayerInventory.destroy()
-  elseif event.element.name == "btn_Spectate" then
+  if event.element.name == "btn_Spectate" then
     spectate(player)
-  elseif event.element.name == "btn_Modifier" then
-    modifierGui(player, false)
-  elseif event.element.name == "btn_Modifier_apply" then
-    modifierGui(player, true)
-  elseif event.element.name == "btn_Modifier_close" then
-    player.gui.center.modifier.destroy()
   else
 		for _,btn in pairs(guis.buttons) do
 			if btn[1] == event.element.name then
 				btn[2](player,event.element)
+				break
 			end
 		end
 	end
@@ -260,6 +253,8 @@ script.on_event(defines.events.on_rocket_launched, function(event)
     end
   end 
 end)
+
+script.on_event(defines.events.on_tick, function(event) if (game.tick*(1/(60*game.speed))/60) % 30 == 0 then autoMessage() end end)
 ----------------------------------------------------------------------------------------
 ---------------------------IDK What There Do Functions----------------------------------
 ----------------------------------------------------------------------------------------
@@ -308,23 +303,10 @@ function drawToolbar()
     clearElement(frame)
 		addButton(frame,"btn_toolbar_playerList", "Playerlist", "Adds a player list to your game.",function(player) toggleVisable(player.gui.left.PlayerList) end)
 		addButton(frame,"btn_toolbar_rocket_score", "Rocket score", "Show the satellite launched counter if a satellite has launched.",function(player) toggleVisable(player.gui.left.rocket_score) end)
-    addButton(frame,"btn_readme", "Readme", "Rules, Server info, How to chat, Playerlist, Adminlist.",function(player) drawFrame(player,'Readme','Rules') end)
-    if a.admin == true then
-      --frame.add{name="btn_Spectate", type = "button", caption="Spectate", tooltip="Spectate how the game is doing."}
-      frame.add{name="btn_Modifier", type = "button", caption="Modifiers", tooltip="Modify game speeds."}
+    addButton(frame,"btn_readme", "Readme", "Rules, Server info, How to chat, Playerlist, Adminlist.",function(player) if player.gui.center.Readme then player.gui.center.Readme.destroy() else drawFrame(player,'Readme','Rules') end end)
+    if a.tag == '[Owner]' or a.tag == '[Developer]' or a.tag == '[Com Mngr]' then
+			addButton(frame,"btn_admin", "Admin", "All admin fuctions are here",function(player) if player.gui.center.Admin then player.gui.center.Admin.destroy() else drawFrame(player,'Admin','Modifiers') end end)
     end
-  end
-end
-
-function spectate (player)
-  if player.character ~= nil then
-    spectating[player.index] = player.character
-    player.character = nil
-    player.print("You are spectating")
-  else
-    player.character = spectating[player.index]
-    spectating[player.index] = nil
-    player.print("You are not spectating")
   end
 end
 ----------------------------------------------------------------------------------------
@@ -398,7 +380,7 @@ function drawPlayerTable(play, guiroot, tablename, isAdminonly)
       if guiroot[tablename][player.name] == nil then
         guiroot[tablename].add{name=i .. "id", type="label", caption=i}
         guiroot[tablename].add{name=player.name, type="label", caption=player.name}
-        if playerconnected == true then
+        if player.connected == true then
           guiroot[tablename].add{name=player.name .. "Status", type="label", caption="ONLINE"}
         else
           guiroot[tablename].add{name=player.name .. "Status", type="label", caption="OFFLINE"}
@@ -416,7 +398,6 @@ addFrame('Readme')
 
 addTab('Readme','Rules','The rules of the server',
 	function(player,frame)
-		clearElement(frame)
 		local rules = {
 			"Hacking/cheating, exploiting and abusing bugs is not allowed.",
 			"Do not disrespect any player in the server (This includes staff).",
@@ -434,12 +415,13 @@ addTab('Readme','Rules','The rules of the server',
 	end)
 addTab('Readme','Server Info','Info about the server',
 	function(player,frame)
-		clearElement(frame)
 		local serverInfo = {
 			"Discord voice and chat server:",
 			"https://discord.gg/RPCxzgt",
 			"Our forum:",
-			"explosivegaming.nl"
+			"explosivegaming.nl",
+			"Steam:",
+			"http://steamcommunity.com/groups/tntexplosivegaming"
     }
 		for i, line in pairs(serverInfo) do
 			frame.add{name=i, type="label", caption={"", line}}
@@ -447,7 +429,6 @@ addTab('Readme','Server Info','Info about the server',
 	end)
 addTab('Readme','How to chat','Just in case you dont know how to chat',
 	function(player,frame)
-		clearElement(frame)
 		local chat = {
 				"Chatting for new players can be difficult because it’s different than other games!",
 				"It’s very simple, the button you need to press is the “GRAVE/TILDE key”",
@@ -460,7 +441,6 @@ addTab('Readme','How to chat','Just in case you dont know how to chat',
 	end)
 addTab('Readme','Admins','List of all the people who can ban you :P',
 	function(player,frame)
-		clearElement(frame)
 		local admins = {
 			"This list contains all the people that are admin in this world. Do you want to become",
 			"an admin dont ask for it! an admin will see what you've made and the time you put",
@@ -472,7 +452,6 @@ addTab('Readme','Admins','List of all the people who can ban you :P',
 	end)
 addTab('Readme','Players','List of all the people who have been on the server',
 	function(player,frame)
-		clearElement(frame)
 		local players = {
 			"These are the players who have supported us in the making of this factory. Without",
 			"you the player we wouldn't have been as far as we are now."}
@@ -484,8 +463,15 @@ addTab('Readme','Players','List of all the people who have been on the server',
 ----------------------------------------------------------------------------------------
 ---------------------------Modifier Gui-------------------------------------------------
 ----------------------------------------------------------------------------------------
-function modifierGui(play, button)
-  local forceModifiers = {
+addFrame('Admin')
+
+addTab('Admin', 'Auto Message', 'Send a message to all players', 
+	function(player, frame)
+		addButton(frame,'btn_toolbar_automessage','Auto Message','Send the auto message to all online players',function(player) autoMessage() end)
+	end)
+addTab('Admin', 'Modifiers', 'Edit in game modifiers',
+	function(player,frame)
+		local forceModifiers = {
     "manual_mining_speed_modifier",
     "manual_crafting_speed_modifier",
     "character_running_speed_modifier",
@@ -497,49 +483,45 @@ function modifierGui(play, button)
     "character_resource_reach_distance_bonus",
     "character_item_pickup_distance_bonus",
     "character_loot_pickup_distance_bonus"
-  }
-  local function apply()
-    play.print("apply")
-    for i, modifier in pairs(forceModifiers) do 
-      local number = tonumber(( play.gui.center.modifier.flowContent.modifierTable[modifier .. "_input"].text):match("[%d]+[.%d+]"))
-      if number ~= nil then
-        if number >= 0 and number < 50 and number ~= play.force[modifier] then
-          play.force[modifier] = number
-          play.print(modifier .. " changed to number: " .. tostring(number))
-        elseif number == play.force[modifier] then
-          play.print(modifier .. " Did not change")
-        else
-          play.print(modifier .. " needs to be a higher number or it contains an letter")
-        end
-      end
+		}
+    frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
+    frame.add{name="modifierTable", type="table", colspan=3}
+    frame.modifierTable.add{name="name", type="label", caption="name"}
+    frame.modifierTable.add{name="input", type="label", caption="input"}
+    frame.modifierTable.add{name="current", type="label", caption="current"}
+    for i, modifier in pairs(forceModifiers) do
+      frame.modifierTable.add{name=modifier, type="label", caption=modifier}
+      frame.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
+      frame.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(player.force[modifier])}
     end
-  end
-  local function drawFrame ()
-    if play.admin == true or play.name == "test" then
-      local frame = play.gui.center.add{name= "modifier", type = "frame", caption="Modifiers panel", direction = "vertical"}
-            frame.add{type = "scroll-pane", name= "flowContent", direction = "vertical", vertical_scroll_policy="always", horizontal_scroll_policy="never"}
-            frame.add{type = "flow", name= "flowNavigation",direction = "horizontal"}
-            frame.flowContent.add{name="modifierInfi", type="label", caption="Only use if you know what you are doing"}
-            frame.flowContent.add{name="modifierTable", type="table", colspan=3}
-            frame.flowContent.modifierTable.add{name="name", type="label", caption="name"}
-            frame.flowContent.modifierTable.add{name="input", type="label", caption="input"}
-            frame.flowContent.modifierTable.add{name="current", type="label", caption="current"}
-      for i, modifier in pairs(forceModifiers) do
-            frame.flowContent.modifierTable.add{name=modifier, type="label", caption=modifier}
-            frame.flowContent.modifierTable.add{name=modifier .. "_input", type="textfield", caption="inputTextField"}
-            frame.flowContent.modifierTable.add{name=modifier .. "_current", type="label", caption=tostring(play.force[modifier])}
-      end
-            frame.flowNavigation.add{name="btn_Modifier_apply", type = "button", caption="Apply", tooltip="Apply ."}
-            frame.flowNavigation.add{name="btn_Modifier_close", type = "button", caption="Close", tooltip="Close the modifier panel."}
-    end
-  end
-  if button == true then
-    apply()
-  else
-    if play.gui.center.modifier ~= nil then
-      play.gui.center.modifier.destroy()
-    else
-      drawFrame()
-    end
-  end
-end
+    addButton(frame.flowNavigation,"btn_Modifier_apply","Apply","Apply the new values to the game",
+			function(player,frame)
+				player.print("apply")
+				local forceModifiers = {
+					"manual_mining_speed_modifier",
+					"manual_crafting_speed_modifier",
+					"character_running_speed_modifier",
+					"worker_robots_speed_modifier",
+					"worker_robots_storage_bonus",
+					"character_build_distance_bonus",
+					"character_item_drop_distance_bonus",
+					"character_reach_distance_bonus",
+					"character_resource_reach_distance_bonus",
+					"character_item_pickup_distance_bonus",
+					"character_loot_pickup_distance_bonus"
+				}
+				for i, modifier in pairs(forceModifiers) do 
+					local number = tonumber(( frame.parent.parent.modifierTable[modifier .. "_input"].text):match("[%d]+[.%d+]"))
+					if number ~= nil then
+						if number >= 0 and number < 50 and number ~= player.force[modifier] then
+							player.force[modifier] = number
+							player.print(modifier .. " changed to number: " .. tostring(number))
+						elseif number == player.force[modifier] then
+							player.print(modifier .. " Did not change")
+						else
+							player.print(modifier .. " needs to be a higher number or it contains an letter")
+						end
+					end
+				end
+			end)
+end)
