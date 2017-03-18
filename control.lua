@@ -45,7 +45,7 @@ function ticktominutes (tick)
 end
 
 function callAdmin(msg)
-	for _, player in pairs(game.players) do 
+	for _, player in pairs(connected_players) do 
 		if player.admin then
 			player.print(msg)
 		end
@@ -294,7 +294,7 @@ end
 ---------------------------Tool Bar-----------------------------------------------------
 ----------------------------------------------------------------------------------------
 function drawToolbar()
-  for i, a in pairs(game.players) do
+  for i, a in pairs(game.connected_players) do
     local frame = a.gui.top
     clearElement(frame)
 		addButton(frame,"btn_toolbar_playerList", "Playerlist", "Adds a player list to your game.",function(player) toggleVisable(player.gui.left.PlayerList) end)
