@@ -181,14 +181,10 @@ end)
 ----------------------------------------------------------------------------------------
 script.on_event(defines.events.on_gui_click, function(event)
   local player = game.players[event.player_index]
-  if event.element.name == "btn_Spectate" then
-    spectate(player)
-  else
-		for _,btn in pairs(guis.buttons) do
-			if btn[1] == event.element.name then
-				btn[2](player,event.element)
-				break
-			end
+	for _,btn in pairs(guis.buttons) do
+		if btn[1] == event.element.name then
+			btn[2](player,event.element)
+			break
 		end
 	end
 end)
