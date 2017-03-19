@@ -330,27 +330,36 @@ function drawPlayerList()
     clearElement(a.gui.left.PlayerList.PlayerListScroll)
     a.gui.left.PlayerList.PlayerListScroll.style.maximal_height = 200
     for i, player in pairs(game.connected_players) do
+			if player.character then
+				if player.tag == '[Jail]' or player.character.active == false then
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - Jail"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=50,g=50,b=50}
+					player.character.active = false
+					player.tag = '[Jail]'
+					break
+				end
+			end
       if player.admin == true then
         if player.name == "badgamernl" or player.name == "BADgamerNL" then
         a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
         a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=0,b=0}
-        if player.tag ~= '[Jailed]' then player.tag = "[Owner]" end
+        player.tag = "[Owner]"
         elseif player.name == "eissturm" or player.name == "PropangasEddy" then
         a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
         a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=41,b=170}
-        if player.tag ~= '[Jailed]' then player.tag = "[Admin]" end
+        player.tag = "[Admin]"
         elseif player.name == "Cooldude2606" then
         a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - DEV"}}
         a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=179,g=125,b=46}
-        if player.tag ~= '[Jailed]' then player.tag = "[Developer]" end
+        player.tag = "[Developer]"
         elseif player.name == "arty714" then
         a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - CM"}}
         a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=150,g=68,b=161}
-        if player.tag ~= '[Jailed]' then player.tag = "[Com Mngr]" end
+        player.tag = "[Com Mngr]"
         else
         a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - MOD"}}
         a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=233,g=63,b=233}
-        if player.tag ~= '[Jailed]' then player.tag = "[Moderator]" end
+        player.tag = "[Moderator]"
         end
 			end
 		end
@@ -359,17 +368,17 @@ function drawPlayerList()
         if ticktominutes(player.online_time) >= timeForRegular then
           a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
           a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=24,g=172,b=188}
-          if player.tag ~= '[Jailed]' then player.tag = "[Regular]" end
+          player.tag = "[Regular]"
         elseif player.name == "explosivegaming" then
           for i=10,1,-1 do 
             a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name .. i, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , i}}
             a.gui.left.PlayerList.PlayerListScroll[player.name .. i].style.font_color = {r=24,g=172,b=188}
-            if player.tag ~= '[Jailed]' then player.tag = "[TEST]" end
+            player.tag = "[TEST]"
           end
         else
           a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
           a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=255,g=159,b=27}
-          if player.tag ~= '[Jailed]' then player.tag = "[Guest]" else game.print('Jailed') end
+          player.tag = "[Guest]"
         end
       end
     end
@@ -543,7 +552,11 @@ addTab('Readme','Players','List of all the people who have been on the server',
 ----------------------------------------------------------------------------------------
 addFrame('Admin')
 
-addButton('btn_toolbar_automessage',function(player) autoMessage() end)
+addButton('btn_toolbar_automessage',function() autoMessage() end)
+addButton('revive_dead_entitys',function() local surface = game.player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, type = "entity-ghost"})) do entity.revive() end end end)
+addButton('remove_biters',function() local surface = game.player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, force='enemy'})) do entity.destroy() end end end)
+addButton('tp_all',function(player,frame) for i,p in pairs(game.connected_players) do local pos = game.surfaces[player.surface.name].find_non_colliding_position("player", player.position, 32, 1) if p ~= player then p.teleport(pos) end end end)
+addButton('toggle_cheat',function(player,frame) player.cheat_mode = not player.cheat_mode end)
 addButton('loadCommandTable',
 	function(player,frame)
 		local filters = {'online'}
@@ -582,9 +595,13 @@ addButton("btn_Modifier_apply",
 		end
 	end)
 	
-addTab('Admin', 'Auto Message', 'Send a message to all players', 
+addTab('Admin', 'Commands', 'Random useful commands', 
 	function(player, frame)
 		drawButton(frame,'btn_toolbar_automessage','Auto Message','Send the auto message to all online players')
+		drawButton(frame,'revive_dead_entitys','Revive Entitys','Brings all dead machines back to life')
+		drawButton(frame,'remove_biters','Kill Biters','Removes all biters in map')
+		drawButton(frame,'tp_all','TP All Here','Brings all players to you')
+		drawButton(frame,'toggle_cheat','Toggle Cheat Mode','Toggle your cheat mode')
 	end)
 addTab('Admin', 'Modifiers', 'Edit in game modifiers',
 	function(player,frame)
