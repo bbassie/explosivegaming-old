@@ -619,5 +619,5 @@ addTab('Admin', 'Player List', 'Send a message to all players',
 		frame.filterTable.add{name='hours_label',type='label',caption='Online Time (minutes)'}
 		frame.filterTable.add{name='blank',type='flow'}
 		frame.filterTable.add{name='hours_input',type='textfield'}
-		drawPlayerTable(player, frame, true, {'omline'})
+		drawPlayerTable(player, frame, true, {'online'})
 	end)
