@@ -172,8 +172,8 @@ script.on_event(defines.events.on_player_joined_game, function(event)
   if player.gui.top.PlayerList ~= nil then
     player.gui.top.PlayerList.destroy()
   end
+	drawPlayerList()
   drawToolbar()
-  drawPlayerList()
   local playerStringTable = encode(game.players, "players", {"name", "admin", "online_time", "connected", "index"})
   game.write_file("players.json", playerStringTable, false)
   if not player.admin and ticktominutes(player.online_time) < 1 then
