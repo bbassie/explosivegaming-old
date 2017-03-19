@@ -389,12 +389,14 @@ end)
 addButton('jail',
 	function(player,frame)
 	local p = game.players[frame.parent.name]
-	if p.character.active then
-		p.character.active = false
-		p.tag = '[Jail]'
-	else
-		p.character.active = true
-		p.tag = '[Guest]'
+	if p.character then
+		if p.character.active then
+			p.character.active = false
+			p.tag = '[Jail]'
+		else
+			p.character.active = true
+			p.tag = '[Guest]'
+		end
 	end
 end)
 addButton('kill',
