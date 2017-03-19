@@ -552,7 +552,6 @@ addButton('loadCommandTable',
 end)
 addButton("btn_Modifier_apply",
 	function(player,frame)
-		player.print("apply")
 		local forceModifiers = {
 			"manual_mining_speed_modifier",
 			"manual_crafting_speed_modifier",
