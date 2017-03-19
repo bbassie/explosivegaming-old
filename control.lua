@@ -400,7 +400,7 @@ end)
 addButton('kill',
 	function(player,frame)
 	local p = game.players[frame.parent.name]
-	p.character.die()
+	if p.character then p.character.die() end
 end)
 function drawPlayerTable(player, frame, commands, filters)
 	frame.add{name='playerTable', type="table", colspan=5}
