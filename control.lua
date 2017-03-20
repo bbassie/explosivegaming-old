@@ -479,9 +479,9 @@ function drawPlayerTable(player, frame, commands, filters)
         frame.playerTable.add{name=p.name .. "Rank", type="label", caption=p.tag}
 				if commands then
 					frame.playerTable.add{name=p.name, type="flow"}
+					drawButton(frame.playerTable[p.name],'goto','Tp','Goto to the players location')
+					drawButton(frame.playerTable[p.name],'bring','Br','Bring a player to your location')
 					if p.tag == '[Owner]' or p.tag == '[Developer]' or p.tag == '[Com Mngr]' then else
-						drawButton(frame.playerTable[p.name],'goto','Tp','Goto to the players location')
-						drawButton(frame.playerTable[p.name],'bring','Br','Bring a player to your location')
 						drawButton(frame.playerTable[p.name],'jail','Ja','Jail/Unjail a player')
 						drawButton(frame.playerTable[p.name],'kill','Ki','Kill this player')
 					end
