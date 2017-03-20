@@ -361,7 +361,6 @@ function drawPlayerList()
 					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=50,g=50,b=50}
 					player.character.active = false
 					player.tag = '[Jail]'
-					break
 				end
 			end
       if player.admin == true then
