@@ -197,6 +197,28 @@ script.on_event(defines.events.on_gui_click, function(event)
 		end
 	end
 end)
+
+script.on_event(defines.events.on_gui_text_changed, function(event)
+	local player = game.players[event.player_index]
+	if event.element.parent.parent.filterTable then
+		local frame = event.element
+		local filters = {}
+		if frame.parent.parent.filterTable.status_input then 
+			local status_input = frame.parent.parent.filterTable.status_input.text
+			if status_input == 'yes' or status_input == 'online' or status_input == 'true' or status_input == 'y' then filters[#filters+1] = 'online'
+			elseif status_input ~= '' then filters[#filters+1] = 'offline' end
+		end if frame.parent.parent.filterTable.hours_input then
+			local hours_input =  frame.parent.parent.filterTable.hours_input.text
+			if tonumber(hours_input) and tonumber(hours_input) > 0 then filters[#filters+1] = tonumber(hours_input) end
+		end if frame.parent.parent.filterTable.name_input then
+			local name_input =  frame.parent.parent.filterTable.name_input.text
+			if name_input then filters[#filters+1] = name_input end
+		end
+		if frame.parent.parent.playerTable then frame.parent.parent.playerTable.destroy() end
+		if frame.parent.parent.parent.name == 'Admin' then commands = true end
+		drawPlayerTable(player, frame.parent.parent, commands, filters)
+	end
+end)
 ----------------------------------------------------------------------------------------
 ---------------------------Grefer Events------------------------------------------------
 ----------------------------------------------------------------------------------------
@@ -341,45 +363,47 @@ function drawPlayerList()
 			end
       if player.admin == true then
         if player.name == "badgamernl" or player.name == "BADgamerNL" then
-        a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
-        a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=0,b=0}
-        player.tag = "[Owner]"
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - OWNER"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=0,b=0}
+					player.tag = "[Owner]"
         elseif player.name == "eissturm" or player.name == "PropangasEddy" then
-        a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
-        a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=41,b=170}
-        player.tag = "[Admin]"
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - ADMIN"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=170,g=41,b=170}
+					player.tag = "[Admin]"
         elseif player.name == "Cooldude2606" then
-        a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - DEV"}}
-        a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=179,g=125,b=46}
-        player.tag = "[Developer]"
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - DEV"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=179,g=125,b=46}
+					player.tag = "[Developer]"
         elseif player.name == "arty714" then
-        a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - CM"}}
-        a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=150,g=68,b=161}
-        player.tag = "[Com Mngr]"
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - CM"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=150,g=68,b=161}
+					player.tag = "[Com Mngr]"
         else
-        a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - MOD"}}
-        a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=233,g=63,b=233}
-        player.tag = "[Moderator]"
+					a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , " - MOD"}}
+					a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=233,g=63,b=233}
+					player.tag = "[Moderator]"
         end
 			end
 		end
 		for i, player in pairs(game.connected_players) do
-      if player.admin == false then
-        if ticktominutes(player.online_time) >= timeForRegular then
-          a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
-          a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=24,g=172,b=188}
-          player.tag = "[Regular]"
-        elseif player.name == "explosivegaming" then
-          for i=10,1,-1 do 
-            a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name .. i, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , i}}
-            a.gui.left.PlayerList.PlayerListScroll[player.name .. i].style.font_color = {r=24,g=172,b=188}
-            player.tag = "[TEST]"
-          end
-        else
-          a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
-          a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=255,g=159,b=27}
-          player.tag = "[Guest]"
-        end
+			if player.tag ~= '[Jail]' then
+				if player.admin == false then
+					if ticktominutes(player.online_time) >= timeForRegular then
+						a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
+						a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=24,g=172,b=188}
+						player.tag = "[Regular]"
+					elseif player.name == "explosivegaming" then
+						for i=10,1,-1 do 
+							a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name .. i, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name , i}}
+							a.gui.left.PlayerList.PlayerListScroll[player.name .. i].style.font_color = {r=24,g=172,b=188}
+							player.tag = "[TEST]"
+						end
+					else
+						a.gui.left.PlayerList.PlayerListScroll.add{type = "label",  name=player.name, style="caption_label_style", caption={"", ticktohour(player.online_time), " H - " , player.name}}
+						a.gui.left.PlayerList.PlayerListScroll[player.name].style.font_color = {r=255,g=159,b=27}
+						player.tag = "[Guest]"
+					end
+				end
       end
     end
   end
@@ -402,9 +426,11 @@ addButton('jail',
 		if p.character.active then
 			p.character.active = false
 			p.tag = '[Jail]'
+			drawPlayerList()
 		else
 			p.character.active = true
 			p.tag = '[Guest]'
+			drawPlayerList()
 		end
 	end
 end)
@@ -430,7 +456,9 @@ function drawPlayerTable(player, frame, commands, filters)
       if filter == 'admin' and p.admin == false then addPlayer = false break
 			elseif filter == 'online' and p.connected == false then addPlayer = false break
 			elseif filter == 'offline' and p.connected == true then addPlayer = false break
-			elseif tonumber(filter) and tonumber(filter) > ticktominutes(p.online_time) then addPlayer = false break
+			elseif filter == 'offline' or filter == 'online' then
+			elseif type(filter)=='number' and filter > ticktominutes(p.online_time) then addPlayer = false break
+			elseif p.name:lower():find(filter:lower()) == nil then addPlayer = false break
 	  end
 	end
     if addPlayer == true then
@@ -463,18 +491,6 @@ end
 ---------------------------Read Me Gui--------------------------------------------------
 ----------------------------------------------------------------------------------------
 addFrame('Readme')
-
-addButton('loadPlayerTable',
-	function(player,frame)
-		local filters = {}
-		status_input = frame.parent.parent.filterTable.status_input.text
-		hours_input =  frame.parent.parent.filterTable.hours_input.text
-		if status_input == 'yes' or status_input == 'online' or status_input == 'true' or status_input == 'y' then filters[#filters+1] = 'online'
-		elseif status_input ~= '' then filters[#filters+1] = 'offline' end
-		if tonumber(hours_input) and tonumber(hours_input) > 0 then filters[#filters+1] = tonumber(hours_input) end
-		if frame.parent.parent.playerTable then frame.parent.parent.playerTable.destroy() end
-		drawPlayerTable(player, frame.parent.parent, false, filters)
-end)
 		
 addTab('Readme','Rules','The rules of the server',
 	function(player,frame)
@@ -539,10 +555,10 @@ addTab('Readme','Players','List of all the people who have been on the server',
 			frame.add{name=i, type="label", caption={"", line}}
 		end
 		frame.add{name='filterTable',type='table',colspan=3}
-		drawButton(frame.filterTable,'loadPlayerTable','Set Filters','Press to get player table with filters')
+		frame.filterTable.add{name='name_label',type='label',caption='Name'}
 		frame.filterTable.add{name='status_label',type='label',caption='Online?'}
 		frame.filterTable.add{name='hours_label',type='label',caption='Online Time (minutes)'}
-		frame.filterTable.add{name='blank',type='flow'}
+		frame.filterTable.add{name='name_input',type='textfield'}
 		frame.filterTable.add{name='status_input',type='textfield'}
 		frame.filterTable.add{name='hours_input',type='textfield'}
 		drawPlayerTable(player, frame, false, {})
@@ -553,18 +569,10 @@ addTab('Readme','Players','List of all the people who have been on the server',
 addFrame('Admin')
 
 addButton('btn_toolbar_automessage',function() autoMessage() end)
-addButton('revive_dead_entitys',function() local surface = game.player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, type = "entity-ghost"})) do entity.revive() end end end)
-addButton('remove_biters',function() local surface = game.player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, force='enemy'})) do entity.destroy() end end end)
+addButton('revive_dead_entitys',function(player,frame) local surface = player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, type = "entity-ghost"})) do entity.revive() end end end)
+addButton('remove_biters',function(player,frame) local surface = player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, force='enemy'})) do entity.destroy() end end end)
 addButton('tp_all',function(player,frame) for i,p in pairs(game.connected_players) do local pos = game.surfaces[player.surface.name].find_non_colliding_position("player", player.position, 32, 1) if p ~= player then p.teleport(pos) end end end)
 addButton('toggle_cheat',function(player,frame) player.cheat_mode = not player.cheat_mode end)
-addButton('loadCommandTable',
-	function(player,frame)
-		local filters = {'online'}
-		hours_input =  frame.parent.parent.filterTable.hours_input.text
-		if tonumber(hours_input) and tonumber(hours_input) > 0 then filters[#filters+1] = tonumber(hours_input) end
-		if frame.parent.parent.playerTable then frame.parent.parent.playerTable.destroy() end
-		drawPlayerTable(player, frame.parent.parent, true, filters)
-end)
 addButton("btn_Modifier_apply",
 	function(player,frame)
 		local forceModifiers = {
@@ -633,9 +641,9 @@ end)
 addTab('Admin', 'Player List', 'Send a message to all players', 
 	function(player, frame)
 		frame.add{name='filterTable',type='table',colspan=2}
-		drawButton(frame.filterTable,'loadCommandTable','Set Filters','Press to get player table with filters')
+		frame.filterTable.add{name='name_label',type='label',caption='Name'}
 		frame.filterTable.add{name='hours_label',type='label',caption='Online Time (minutes)'}
-		frame.filterTable.add{name='blank',type='flow'}
+		frame.filterTable.add{name='name_input',type='textfield'}
 		frame.filterTable.add{name='hours_input',type='textfield'}
 		drawPlayerTable(player, frame, true, {'online'})
 	end)
