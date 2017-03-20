@@ -215,7 +215,7 @@ script.on_event(defines.events.on_gui_text_changed, function(event)
 			if name_input then filters[#filters+1] = name_input end
 		end
 		if frame.parent.parent.playerTable then frame.parent.parent.playerTable.destroy() end
-		if frame.parent.parent.parent.name == 'Admin' then commands = true end
+		if frame.parent.parent.parent.name == 'Admin' then local commands = true else local commands = false end
 		drawPlayerTable(player, frame.parent.parent, commands, filters)
 	end
 end)
