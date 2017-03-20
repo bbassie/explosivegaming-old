@@ -458,7 +458,7 @@ function drawPlayerTable(player, frame, commands, filters)
 			elseif filter == 'offline' and p.connected == true then addPlayer = false break
 			elseif filter == 'offline' or filter == 'online' then
 			elseif type(filter)=='number' and filter > ticktominutes(p.online_time) then addPlayer = false break
-			elseif p.name:lower():find(filter:lower()) == nil then addPlayer = false break
+			elseif type(filter)=='string' and p.name:lower():find(filter:lower()) == nil then addPlayer = false break
 	  end
 	end
     if addPlayer == true then
