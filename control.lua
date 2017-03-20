@@ -12,9 +12,11 @@ CHUNK_SIZE = 32
 ---------------------------Remove decorations-------------------------------------------
 ----------------------------------------------------------------------------------------
 local function removeDecorationsArea(surface, area )
-	for _, entity in pairs(surface.find_entities_filtered{area = area, type="decorative"}) do
-		if (entity.name ~= "red-bottleneck" and entity.name ~= "yellow-bottleneck" and entity.name ~= "green-bottleneck") then
-			entity.destroy()
+	if surface.find_entities_filtered{area = area, type="decorative"} then
+		for _, entity in pairs(surface.find_entities_filtered{area = area, type="decorative"}) do
+			if (entity.name ~= "red-bottleneck" and entity.name ~= "yellow-bottleneck" and entity.name ~= "green-bottleneck") then
+				entity.destroy()
+			end
 		end
 	end
 end
