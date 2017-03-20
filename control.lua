@@ -49,7 +49,7 @@ function ticktominutes (tick)
 end
 
 function callAdmin(msg)
-	for _, player in pairs(connected_players) do 
+	for _, player in pairs(game.connected_players) do 
 		if player.admin then
 			player.print(msg)
 		end
@@ -156,6 +156,7 @@ end)
 
 script.on_event(defines.events.on_player_respawned, function(event)
   local player = game.players[event.player_index]
+	drawPlayerList()
   player.insert{name="pistol", count=1}
   player.insert{name="firearm-magazine", count=10}
 end)
