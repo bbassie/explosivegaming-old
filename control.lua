@@ -234,8 +234,8 @@ script.on_event(defines.events.on_marked_for_deconstruction, function(event)
       eplayer.print("You are not allowed to do this yet, player for a bit longer. Try again in about: " .. math.floor((timeForRegular - ticktominutes(eplayer.online_time))) .. " minutes")
       callAdmin(eplayer.name .. " tryed to deconstruced something")
     end
-    elseif event.entity.type == "tree" or event.entity.type == "simple-entity" then
-      event.entity.destroy()
+  elseif event.entity.type == "tree" or event.entity.type == "simple-entity" then
+    event.entity.destroy()
 	end
 end)
 
@@ -571,8 +571,9 @@ addTab('Readme','Players','List of all the people who have been on the server',
 addFrame('Admin')
 
 addButton('btn_toolbar_automessage',function() autoMessage() end)
-addButton('revive_dead_entitys',function(player,frame) local surface = player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, type = "entity-ghost"})) do entity.revive() end end end)
-addButton('remove_biters',function(player,frame) local surface = player.surface for c in surface.get_chunks() do for key, entity in pairs(surface.find_entities_filtered({area={{c.x * 32, c.y * 32}, {c.x * 32 + 32, c.y * 32 + 32}}, force='enemy'})) do entity.destroy() end end end)
+addButton('revive_dead_entitys',function(player,frame) for key, entity in pairs(game.surfaces[1].find_entities_filtered({type = "entity-ghost"})) do entity.revive() end end)
+addButton('revive_dead_entitys_range',function(player,frame) if tonumber(frame.parent.range.text) then local range = tonumber(frame.parent.range.text) for key, entity in pairs(game.surfaces[1].find_entities_filtered({area={{player.position.x-range,player.position.y-range},{player.position.x+range,player.position.y+range}},type = "entity-ghost"})) do entity.revive() end end end)
+addButton('remove_biters',function(player,frame) for key, entity in pairs(game.surfaces[1].find_entities_filtered({force='enemy'})) do entity.destroy() end end)
 addButton('tp_all',function(player,frame) for i,p in pairs(game.connected_players) do local pos = game.surfaces[player.surface.name].find_non_colliding_position("player", player.position, 32, 1) if p ~= player then p.teleport(pos) end end end)
 addButton('toggle_cheat',function(player,frame) player.cheat_mode = not player.cheat_mode end)
 addButton("btn_Modifier_apply",
@@ -608,7 +609,9 @@ addButton("btn_Modifier_apply",
 addTab('Admin', 'Commands', 'Random useful commands', 
 	function(player, frame)
 		drawButton(frame,'btn_toolbar_automessage','Auto Message','Send the auto message to all online players')
-		drawButton(frame,'revive_dead_entitys','Revive Entitys','Brings all dead machines back to life')
+		drawButton(frame,'revive_dead_entitys','Revive All Entitys','Brings all dead machines back to life')
+		drawButton(frame,'revive_dead_entitys_range','Revive Entitys','Brings all dead machines back to life in a range')
+		frame.add{type='textfield',name='range',text='Range'}
 		drawButton(frame,'remove_biters','Kill Biters','Removes all biters in map')
 		drawButton(frame,'tp_all','TP All Here','Brings all players to you')
 		drawButton(frame,'toggle_cheat','Toggle Cheat Mode','Toggle your cheat mode')
