@@ -206,7 +206,9 @@ script.on_event(defines.events.on_gui_text_changed, function(event)
 	if event.element.parent.parent.filterTable then
 		local frame = event.element
 		local filters = {}
-		if frame.parent.parent.filterTable.status_input then 
+		local commands = false
+		if frame.parent.parent.parent.name == 'Admin' then commands = true filters[#filters+1] = 'online' end
+		if frame.parent.parent.filterTable.status_input and not commands then 
 			local status_input = frame.parent.parent.filterTable.status_input.text
 			if status_input == 'yes' or status_input == 'online' or status_input == 'true' or status_input == 'y' then filters[#filters+1] = 'online'
 			elseif status_input ~= '' then filters[#filters+1] = 'offline' end
@@ -218,7 +220,6 @@ script.on_event(defines.events.on_gui_text_changed, function(event)
 			if name_input then filters[#filters+1] = name_input end
 		end
 		if frame.parent.parent.playerTable then frame.parent.parent.playerTable.destroy() end
-		if frame.parent.parent.parent.name == 'Admin' then local commands = true else local commands = false end
 		drawPlayerTable(player, frame.parent.parent, commands, filters)
 	end
 end)
@@ -455,15 +456,14 @@ function drawPlayerTable(player, frame, commands, filters)
   for i, p in pairs(game.players) do
     local addPlayer = true
     for _,filter in pairs(filters) do
-      if filter == 'admin' and p.admin == false then addPlayer = false break
-			elseif filter == 'online' and p.connected == false then addPlayer = false break
-			elseif filter == 'offline' and p.connected == true then addPlayer = false break
-			elseif filter == 'offline' or filter == 'online' then
-			elseif type(filter)=='number' and filter > ticktominutes(p.online_time) then addPlayer = false break
-			elseif type(filter)=='string' and p.name:lower():find(filter:lower()) == nil then addPlayer = false break
+      if filter == 'admin' then if p.admin == false then addPlayer = false break end
+			elseif filter == 'online' then if p.connected == false then addPlayer = false break end
+			elseif filter == 'offline' then if p.connected == true then addPlayer = false break end
+			elseif type(filter)=='number' then if filter > ticktominutes(p.online_time) then addPlayer = false break end
+			elseif type(filter)=='string' then if p.name:lower():find(filter:lower()) == nil then addPlayer = false break end
 	  end
 	end
-    if addPlayer == true then
+    if addPlayer == true and player.name ~= p.name then
       if frame.playerTable[p.name] == nil then
         frame.playerTable.add{name=i .. "id", type="label", caption=i}
         frame.playerTable.add{name=p.name..'_name', type="label", caption=p.name}
