@@ -60,7 +60,7 @@ end
 
 function autoMessage()
 	game.print('There are '..#game.connected_players..' players online')
-	game.print('This map has been on for '..ticktohour(game.tick)..' Hours and '..(ticktominutes(game.tick)-60*ticktohour(game.tick))..' Minutes'))
+	game.print('This map has been on for '..ticktohour(game.tick)..' Hours and '..(ticktominutes(game.tick)-60*ticktohour(game.tick))..' Minutes')
 	game.print('Please join us on:')
 	game.print('Discord: https://discord.gg/RPCxzgt')
 	game.print('Forum: explosivegaming.nl')
